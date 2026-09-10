@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Persegi Panjang Parametrik</title>
+    <link rel="stylesheet" href="schematic_test.css" />
+    <script src="schematic_test.js" defer></script>
+  </head>
+  <body>
+    <form class="controls" id="parameters">
+      <strong>Schematic test (rectangular)</strong>
+      <label>Length (mm) <input id="width" type="number" min="1" max="100000" step="any" value="6000" required /></label>
+      <label>Height (mm) <input id="height" type="number" min="1" max="100000" step="any" value="4000" required /></label>
+      <p>Change the parameters to redraw. The (0, 0) coordinate is at the bottom left; X points to the right, Y points up. The scale automatically adjusts to fit A4.</p>
+      <p id="status" role="status"></p>
+    </form>
+    <main class="workspace">
+      <svg id="drawing" class="canvas-a4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 210 297" role="img" aria-labelledby="drawing-title drawing-description">
+        <title id="drawing-title">Persegi panjang parametrik pada A4</title>
+        <desc id="drawing-description">Gambar dengan koordinat engineering dalam milimeter, centerline, dan garis dimensi.</desc>
+        <g id="drawing-content"></g>
+      </svg>
+    </main>
+  </body>
+</html>
