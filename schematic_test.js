@@ -1,14 +1,29 @@
-"use strict";
+"use strict";       //Make javascript code more strict and avoid some silent errors.(should declare variables, no duplicate params, etc.)
 
 // Model: actual engineering dimensions in mm, independent of the screen.
-const parameters = { width: 6000, height: 4000 };
+// Put the size of shape into parameters object.
+//default values for the rectangle, in mm. The drawing will be scaled to fit on A4 paper.
+// event use const, property change is allowed. parameters.width = 8000; --> bisa
+const parameters = { width: 139.8, height: 5000 }; 
+// NS = Name Space for SVG elements.
 const NS = "http://www.w3.org/2000/svg";
+// DOM elements, tempat untuk menampilkan gambar dan menerima input dari user.
 const content = document.getElementById("drawing-content");
+// form yang memuat input panjang dan tinggi.
 const form = document.getElementById("parameters");
+// paragraf untuk menampilkan ukuran, skala, atau pesan kesalahan.
 const status = document.getElementById("status");
-const format = (value) => Number(value.toFixed(2)).toLocaleString("id-ID");
+// ungsi format() menyiapkan angka untuk ditampilkan.
+const format = (value) => Number(value.toFixed(2)).toLocaleString("en-US", {useGrouping: false});
+// useGrouping:false agar tidak ada pemisah ribuan, misal 1000 menjadi 1000 bukan 1,000. Dalam gambar engineering tidak ada pemisah ribuan
+
 
 // Small drawing engine. SVG viewBox units represent mm on the A4 paper.
+// class mengelompokkan data dan fungsi yang saling berkaitan.
+// Setiap instance DrawingEngine menyimpan:
+// root: Grup SVG tujuan
+// origin: posisi titik engineering (0, 0) pada kertas
+// scale; rasio ukuran kertas terhadap gambar sebenarnya
 class DrawingEngine {
   constructor(root, origin, scale) {
     this.root = root;
@@ -17,19 +32,55 @@ class DrawingEngine {
   }
 
   // Engineering: +Y up. SVG: +Y down. Only this function converts coordinates.
+  // origin = { x: 100, y: 200 };
+  // scale = 0.5;
+  // toSvg(20, 30);
+  // Hasil: { x: 110, y: 185 }
+  // x dan y adalah property dari toSvg
+  // xMm, yMm adalah parameter dari toSvg
   toSvg(xMm, yMm) {
-    return { x: this.origin.x + xMm * this.scale, y: this.origin.y - yMm * this.scale };
+    return { 
+      x: this.origin.x + xMm * this.scale, 
+      y: this.origin.y - yMm * this.scale,
+     };
   }
 
+  // Method element: Method umum untuk membuat elemen SVG.
+  // tag: nama tag SVG, misalnya "line".
+  // attributes: objek berisi atribut SVG.
+  // text: isi tulisan, jika elemennya <text>.
   element(tag, attributes, text) {
+    // Membuat elemen SVG menggunakan namespace SVG.
+    // Contoh jika tag === "line": -->  <line></line>
     const node = document.createElementNS(NS, tag);
+    // Mengubah setiap properti objek attributes menjadi atribut SVG.
     for (const [key, value] of Object.entries(attributes)) node.setAttribute(key, value);
+    // Contoh objek:
+    // {
+    //   x1: 10,
+    //   y1: 20,
+    //   class: "object-line"
+    // }
+    // Object.entries() mengubahnya menjadi pasangan:
+    // [
+    //   ["x1", 10],
+    //   ["y1", 20],
+    //   ["class", "object-line"]
+    // ]
+    // Setelah loop, hasil SVG-nya: --> <line x1="10" y1="20" class="object-line"></line>
+    // [key, value] disebut array destructuring.
     if (text !== undefined) node.textContent = text;
+    // Jika argumen text diberikan, masukkan teks ke elemen.
+    // element("text", { x: 10, y: 20 }, "Hello");
+    // Menghasilkan: --> <text x="10" y="20">Hello</text>
+    // Pemeriksaan menggunakan !== undefined, sehingga teks kosong "" tetap dianggap nilai yang valid.
     this.root.appendChild(node);
+    // Memasukkan elemen baru ke elemen SVG induk.
     return node;
   }
 
   paperLine(a, b, className = "dimension-line") {
+    // Nilai default className adalah "dimension-line" jika tidak diberikan argumen ketiga.
     return this.element("line", { x1: a.x, y1: a.y, x2: b.x, y2: b.y, class: className });
   }
 
@@ -90,13 +141,29 @@ class DrawingEngine {
 function drawRectangle(engine, model) {
   const w = model.width;
   const h = model.height;
-  engine.drawPolyline([{ x: 0, y: 0 }, { x: w, y: 0 }, { x: w, y: h }, { x: 0, y: h }, { x: 0, y: 0 }]);
+  engine.drawPolyline([
+    { x: 0, y: 0 },
+    { x: w, y: 0 },
+    { x: w, y: h },
+    { x: 0, y: h },
+    { x: 0, y: 0 }
+  ]);
   const extension = 5 / engine.scale;
   engine.drawLine({ x: w / 2, y: -extension }, { x: w / 2, y: h + extension }, "centerline");
   engine.drawLine({ x: -extension, y: h / 2 }, { x: w + extension, y: h / 2 }, "centerline");
   engine.drawDimension({ x: 0, y: 0 }, { x: w, y: 0 }, "horizontal", 14, `${format(w)} mm`);
   engine.drawDimension({ x: 0, y: 0 }, { x: 0, y: h }, "vertical", -14, `${format(h)} mm`);
 }
+
+
+
+
+
+
+
+
+
+
 
 function render(model) {
   content.replaceChildren();

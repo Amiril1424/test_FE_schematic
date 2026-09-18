@@ -1,0 +1,7 @@
+PDF: Penjelasan_JavaScript_Schematic.pdf
+Pages: 18
+Sections: 14
+Content blocks verified: 287
+Missing content blocks: 0
+Page size: A4
+Bytes: 131272
