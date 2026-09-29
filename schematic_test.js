@@ -24,20 +24,23 @@ const format = (value) => Number(value.toFixed(2)).toLocaleString("en-US", {useG
 // root: Grup SVG tujuan
 // origin: posisi titik engineering (0, 0) pada kertas
 // scale; rasio ukuran kertas terhadap gambar sebenarnya
+// this berarti: object DrawingEngine yang sedang menjalankan method tersebut.
 class DrawingEngine {
+  // PROPERTY in Class DrawingEngine
   constructor(root, origin, scale) {
     this.root = root;
     this.origin = origin;
     this.scale = scale; // paper mm / actual mm
   }
-
+  
+  // ///////////METHOD in Class DrawingEngine////////////////////////////////
   // Engineering: +Y up. SVG: +Y down. Only this function converts coordinates.
   // origin = { x: 100, y: 200 };
   // scale = 0.5;
   // toSvg(20, 30);
   // Hasil: { x: 110, y: 185 }
-  // x dan y adalah property dari toSvg
-  // xMm, yMm adalah parameter dari toSvg
+  // xMm dan yMm adalah parameter method toSvg().
+  // x dan y adalah property dari object yang dikembalikan/direturn oleh toSvg().
   toSvg(xMm, yMm) {
     return { 
       x: this.origin.x + xMm * this.scale, 
@@ -138,7 +141,9 @@ class DrawingEngine {
   }
 }
 
-function drawRectangle(engine, model) {
+// Draw Objects here:
+// Pole
+function drawPole(engine, model) {
   const w = model.width;
   const h = model.height;
   engine.drawPolyline([
@@ -148,12 +153,22 @@ function drawRectangle(engine, model) {
     { x: 0, y: h },
     { x: 0, y: 0 }
   ]);
-  const extension = 5 / engine.scale;
-  engine.drawLine({ x: w / 2, y: -extension }, { x: w / 2, y: h + extension }, "centerline");
-  engine.drawLine({ x: -extension, y: h / 2 }, { x: w + extension, y: h / 2 }, "centerline");
-  engine.drawDimension({ x: 0, y: 0 }, { x: w, y: 0 }, "horizontal", 14, `${format(w)} mm`);
-  engine.drawDimension({ x: 0, y: 0 }, { x: 0, y: h }, "vertical", -14, `${format(h)} mm`);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -171,19 +186,11 @@ function render(model) {
   const scale = Math.min(140 / model.width, 170 / model.height);
   const origin = { x: 110 - model.width * scale / 2, y: 148 + model.height * scale / 2 };
   const engine = new DrawingEngine(content, origin, scale);
-  engine.drawText(16, 20, "Rectaangular with Parametric Dimensions", "drawing-text heading");
+  engine.drawText(16, 20, "Pole with Parametric Dimensions", "drawing-text heading");
   engine.drawText(16, 28, "Model units: mm | A4 portrait | Automatic scale", "drawing-text note");
-  drawRectangle(engine, model);
+  drawPole(engine, model);
 
-  // Local axes show the engineering origin. Their displayed length is fixed.
-  const axisLength = 10 / scale;
-  engine.drawLine({ x: 0, y: 0 }, { x: axisLength, y: 0 }, "axis-line");
-  engine.drawLine({ x: 0, y: 0 }, { x: 0, y: axisLength }, "axis-line");
-  engine.drawText(origin.x + 11, origin.y - 1, "X →", "drawing-text axis-label");
-  engine.drawText(origin.x + 1, origin.y - 11, "Y ↑", "drawing-text axis-label");
-  engine.drawText(origin.x + 2, origin.y + 6, "(0, 0)", "drawing-text axis-label");
   engine.drawText(16, 269, `Scale ≈ 1 : ${format(1 / scale)} | Length ${format(model.width)} mm × Height ${format(model.height)} mm`, "drawing-text note");
-  // engine.drawText(16, 276, "Thick: object · Thin: dimension · Long-dash-dot: centerline", "drawing-text note");
   status.textContent = `Size: ${format(model.width)} × ${format(model.height)} mm. Drawing scale ≈ 1 : ${format(1 / scale)}.`;
 }
 
