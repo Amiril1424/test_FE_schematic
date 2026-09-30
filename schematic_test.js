@@ -135,6 +135,56 @@ class DrawingEngine {
     return this.element("text", { x, y, class: className, ...attributes }, text);
   }
 
+  // Leader target and elbow use engineering mm (Y up).
+  // Shelf width and text spacing use paper mm, so annotations stay readable.
+  drawLeader(target, elbow, topText, bottomText = "", shelfWidth = 0) {
+    const tip = this.toSvg(target.x, target.y);
+    const bend = this.toSvg(elbow.x, elbow.y);
+    const direction = bend.x >= tip.x ? 1 : -1;
+
+    const top = this.drawText(bend.x, bend.y - 2, topText, "drawing-text", {
+      "text-anchor": "middle"
+    });
+    const bottom = bottomText === "" ? null : this.drawText(
+      bend.x, bend.y + 5, bottomText, "drawing-text", { "text-anchor": "middle" }
+    );
+
+    // Fit the longest label with 1 paper mm of padding at each end.
+    const textPadding = 1;
+    const width = Math.max(
+      shelfWidth,
+      top.getComputedTextLength() + textPadding * 2,
+      bottom ? bottom.getComputedTextLength() + textPadding * 2 : 0
+    );
+    const end = { x: bend.x + direction * width, y: bend.y };
+    const textX = (bend.x + end.x) / 2;
+    top.setAttribute("x", textX);
+    if (bottom) bottom.setAttribute("x", textX);
+
+    this.paperLine(tip, bend, "dimension-line");
+    this.paperLine(bend, end, "dimension-line");
+    this.drawArrow(tip, Math.atan2(bend.y - tip.y, bend.x - tip.x));
+  }
+
+  // Straight pole: diameter × thickness above the shelf, material below.
+  drawStraightPoleLeader(target, elbow, diameter, thickness, material, shelfWidth = 0) {
+    const thicknessText = Number.isFinite(thickness) && thickness > 0
+      ? thickness.toFixed(1)
+      : "?";
+    this.drawLeader(
+      target,
+      elbow,
+      `Ø${format(diameter)} × t${thicknessText}`,
+      material,
+      shelfWidth
+    );
+  }
+
+  // Object name: one line above the shelf. Default name for now: Lighting.
+  drawObjectLeader(target, elbow, name = "Lighting", shelfWidth = 0) {
+    this.drawLeader(target, elbow, name, "", shelfWidth);
+  }
+
   // Arrow size remains constant on paper, regardless of model scale.
   drawArrow(tip, direction) {
     const length = 2.5;
@@ -148,16 +198,25 @@ class DrawingEngine {
   }
 
   // Endpoints in model mm; annotation offset in paper mm.
-  drawDimension(a, b, orientation, offset, label) {
+  drawDimension(a, b, orientation, offset, label, dimensionPosition) {
     const start = this.toSvg(a.x, a.y);
     const end = this.toSvg(b.x, b.y);
     const horizontal = orientation === "horizontal";
     const p = horizontal ? { x: start.x, y: start.y + offset } : { x: start.x + offset, y: start.y };
     const q = horizontal ? { x: end.x, y: end.y + offset } : { x: end.x + offset, y: end.y };
+    // Optional fixed dimension position in paper units, independent of object edges.
+    if (dimensionPosition !== undefined) {
+      if (horizontal) {
+        p.y = q.y = dimensionPosition;
+      } else {
+        p.x = q.x = dimensionPosition;
+      }
+    }
     const sign = Math.sign(offset);
+    const objectGap = 30 * this.scale; // 30 mm engineering, converted to paper mm.
     for (const [anchor, target] of [[start, p], [end, q]]) {
       this.paperLine(
-        { x: anchor.x + (horizontal ? 0 : sign), y: anchor.y + (horizontal ? sign : 0) },
+        { x: anchor.x + (horizontal ? 0 : sign * objectGap), y: anchor.y + (horizontal ? sign * objectGap : 0) },
         { x: target.x + (horizontal ? 0 : sign * 2), y: target.y + (horizontal ? sign * 2 : 0) },
       );
     }
@@ -390,7 +449,162 @@ function drawOpeningBoxCenterLine(engine, model) {
 }
 
 
+// -----------Draw Dimension Line---------------------
+function drawPoleDimensions(engine, model) {
 
+  const poles = [...model.poles].reverse();
+  let currentY = 0;
+  const individualOffset = -40;
+  const totalOffset = individualOffset - 8 ; // Total dimension line is slightly further out than individual dimensions.
+  const overallMaxDiameter = Math.max(...poles.flatMap(pole => [pole.Lower_D, pole.Upper_D]));
+  const dimensionX = engine.toSvg(-overallMaxDiameter / 2, 0).x + individualOffset;
+  const baseplateWidth = 350; // Example width for the baseplate
+  // Each joint uses the outermost edge of the two adjacent pole ends.
+  // Both touching dimensions must leave the same 30 mm engineering gap.
+  const boundaryX = [-baseplateWidth / 2]; // Bottom dimensions start at the left baseplate edge.
+  for (let index = 0; index < poles.length - 1; index++) {
+    boundaryX.push(-Math.max(poles[index].Upper_D, poles[index + 1].Lower_D) / 2);
+  }
+  boundaryX.push(-poles[poles.length - 1].Upper_D / 2);
+
+  // Dimension masing-masing section
+  for (const [index, pole] of poles.entries()) {
+    const h = pole.height;
+
+    engine.drawDimension(
+      { x: boundaryX[index], y: currentY},
+      { x: boundaryX[index + 1], y: currentY + h},
+      "vertical",
+      individualOffset,
+      format(h),
+      dimensionX
+    );
+    currentY += h;
+  }
+
+  // Dimension total hanya untuk 2 pole atau lebih
+  if (poles.length > 1) {
+    const totalHeight = currentY;
+
+    engine.drawDimension(
+      { x: boundaryX[0], y: 0},
+      { x: boundaryX[boundaryX.length - 1], y: totalHeight},
+      "vertical",
+      totalOffset,
+      format(totalHeight),
+      dimensionX + totalOffset - individualOffset
+    );
+  }
+}
+
+function drawOpeningBoxDimensions(engine, model) {
+  const bottomPole = model.poles[model.poles.length - 1];
+  const baseplateWidth = 350; // Match drawBaseplate().
+  const heightOpeningAtCenter = 750; // Match drawOpeningBoxCenterLine().
+  const extension = 100; // Engineering mm: opening centerline extension.
+  const taperRatio = calculateTaperRatio(
+    bottomPole.Lower_D,
+    bottomPole.Upper_D,
+    bottomPole.height
+  );
+  const diameterPoleAtOpening = bottomPole.Lower_D - heightOpeningAtCenter * taperRatio;
+  const baseplatePoint = { x: -baseplateWidth / 2, y: 0 };
+  const centerlineEnd = {
+    x: -diameterPoleAtOpening / 2 - 22.7 - extension,
+    y: heightOpeningAtCenter
+  };
+  const individualOffset = -40; // Same reference as drawPoleDimensions().
+  const dimensionSpacing = 8; // Paper mm between the pole and opening dimensions.
+  const overallMaxDiameter = Math.max(...model.poles.flatMap(pole => [pole.Lower_D, pole.Upper_D]));
+  const offset = individualOffset + dimensionSpacing;
+  const dimensionX = engine.toSvg(-overallMaxDiameter / 2, 0).x + offset;
+
+  // drawDimension() supplies the 30 mm engineering gap at both anchors.
+  engine.drawDimension(
+    baseplatePoint,
+    centerlineEnd,
+    "vertical",
+    offset,
+    format(heightOpeningAtCenter),
+    dimensionX
+  );
+}
+
+// ----------------Draw Leader-----------------------
+function drawPoleLeader(engine, model) {
+  // Applies to one Straight pole or multiple poles that are all Straight.
+  // If any pole is Tapered, omit all pole leaders for now.
+  if (!model.poles.every(pole => pole.type === "straight")) return;
+
+  const poles = [...model.poles].reverse(); // Same bottom-to-top order as drawPole().
+  let currentY = 0;
+  const leaderOffset = 12 / engine.scale; // 12 paper mm expressed in engineering mm.
+
+  for (const pole of poles) {
+    const target = {
+      x: pole.Lower_D / 2,
+      y: currentY + pole.height / 2
+    };
+    const elbow = {
+      x: target.x + leaderOffset,
+      y: target.y + leaderOffset
+    };
+
+    engine.drawStraightPoleLeader(
+      target,
+      elbow,
+      pole.Lower_D,
+      pole.thickness,
+      pole.material
+    );
+    currentY += pole.height;
+  }
+}
+
+// Draw Leader for Object
+function drawObjectLeader(engine, model) {
+  const totalHeight = model.poles.reduce((sum, pole) => sum + pole.height, 0);
+  const lightingHeight = 200; // Match drawLightingSchematic().
+  const lightingWidth = 600;
+  const leaderOffset = 12 / engine.scale; // 12 paper mm in engineering units.
+
+  // Arrow touches the middle of the Lighting object's right edge.
+  const target = {
+    x: lightingWidth - 100,
+    y: totalHeight + lightingHeight / 2
+  };
+  const elbow = {
+    x: target.x + leaderOffset,
+    y: target.y + leaderOffset
+  };
+
+  engine.drawObjectLeader(target, elbow, "灯具");
+}
+
+// Draw Leader for Opening Part
+function drawOpeningBoxLeader(engine, model) {
+  const bottomPole = model.poles[model.poles.length - 1];
+  const heightOpeningAtCenter = 750; // Match drawOpeningBox().
+  const taperRatio = calculateTaperRatio(
+    bottomPole.Lower_D,
+    bottomPole.Upper_D,
+    bottomPole.height
+  );
+  const diameterPoleAtOpening = bottomPole.Lower_D - heightOpeningAtCenter * taperRatio;
+  const leaderOffset = 12 / engine.scale; // 12 paper mm in engineering units.
+
+  // Intersection of Box2's left side and the opening centerline.
+  const target = {
+    x: -diameterPoleAtOpening / 2 - 22.7,
+    y: heightOpeningAtCenter
+  };
+  const elbow = {
+    x: target.x - leaderOffset,
+    y: target.y + leaderOffset
+  };
+
+  engine.drawObjectLeader(target, elbow, "開口部");
+}
 
 
 
@@ -426,13 +640,22 @@ function render(model) {
   const engine = new DrawingEngine(content, origin, scale);
   engine.drawText(16, 20, "Pole with Parametric Dimensions", "drawing-text heading");
   engine.drawText(16, 28, "Model units: mm | A4 portrait | Automatic scale", "drawing-text note");
+  // Draw Objects
   drawPole(engine, model);
   drawBaseplate(engine, model);
   drawOpeningBox(engine, model);
   drawAdapterTop(engine, model);
   drawLightingSchematic(engine, model);
+  // Center lines
   drawPoleCenterLine(engine, model);
   drawOpeningBoxCenterLine(engine, model);
+  // Dimension lines
+  drawPoleDimensions(engine, model);
+  drawOpeningBoxDimensions(engine, model);
+  // Pole leaders (Straight only).
+  drawPoleLeader(engine, model);
+  drawObjectLeader(engine, model);
+  drawOpeningBoxLeader(engine, model);
 
   // engine.drawText(16, 269, `Scale ≈ 1 : ${format(1 / scale)} | Length ${format(model.Upper_D)} mm × Height ${format(model.height)} mm`, "drawing-text note");
   status.textContent = `Poles: ${model.poleCount} | Max diameter: ${format(MaxDiameter)} mm | Total height: ${format(totalHeight)} mm. Drawing scale ≈ 1 : ${format(1 / scale)}.`;
