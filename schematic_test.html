@@ -3,22 +3,168 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Persegi Panjang Parametrik</title>
+    <title>Pole Specifications</title>
     <link rel="stylesheet" href="schematic_test.css" />
     <script src="schematic_test.js" defer></script>
   </head>
   <body>
-    <form class="controls" id="parameters">
-      <strong>Schematic test (Pole)</strong>
-      <label>Pole Diameter (mm) <input id="width" type="number" min="1" max="100000" step="any" value="139.8" required /></label>
-      <label>Pole Height (mm) <input id="height" type="number" min="1" max="100000" step="any" value="5000" required /></label>
-      <p>Change the parameters to redraw. The (0, 0) coordinate is at the bottom left; X points to the right, Y points up. The scale automatically adjusts to fit A4.</p>
-      <p id="status" role="status"></p>
-    </form>
+    <section class="controls" id="parameters" aria-label="Pole parameters">
+      <div class="pole-toolbar" id="pole-toolbar">
+        <span class="pole-count-badge" id="pole-count-badge">
+          <span class="count-1">1</span><span class="count-2">2</span><span class="count-3">3</span>
+          <span class="count-divider">/</span> 3 Poles
+        </span>
+        <div class="count-field">
+          <label class="visually-hidden" for="pole-count">Jumlah pole</label>
+          <select id="pole-count" name="pole-count" aria-controls="pole-step-1 pole-step-2 pole-step-3">
+            <option value="1" selected>1 Pole</option>
+            <option value="2">2 Poles</option>
+            <option value="3">3 Poles</option>
+          </select>
+        </div>
+        <button id="pole-count-confirm" type="button" disabled>OK</button>
+      </div>
+
+      <section class="pole-step" id="pole-step-1" aria-labelledby="pole-title-1">
+        <header class="step-header">
+          <span class="step-number" aria-hidden="true">1</span>
+          <h2 id="pole-title-1">Step Pole 1<small>Pole specifications</small></h2>
+        </header>
+        <div class="pole-fields">
+          <div class="field">
+            <label for="pole-1-name">Pole Name</label>
+            <input id="pole-1-name" name="pole-1-name" type="text" placeholder="e.g., Pole 1" />
+          </div>
+          <div class="field">
+            <label for="pole-1-material">Material</label>
+            <select id="pole-1-material" name="pole-1-material"><option value="STK400">STK400</option><option value="STK490">STK490</option></select>
+          </div>
+          <div class="field">
+            <label for="pole-1-type">Pole Type</label>
+            <select id="pole-1-type" name="pole-1-type"><option value="straight">Straight</option><option value="tapered">Tapered</option></select>
+          </div>
+          <div class="field">
+            <label for="pole-1-diameter"><span class="straight-label">Diameter</span><span class="taper-label">Lower Diameter</span></label>
+            <div class="input-unit"><input id="pole-1-diameter" name="pole-1-diameter" type="number" min="0.1" step="any" aria-describedby="pole-1-diameter-unit" /><span id="pole-1-diameter-unit">mm</span></div>
+            <div class="taper-only">
+              <label for="pole-1-upper-diameter">Upper Diameter</label>
+              <div class="input-unit"><input id="pole-1-upper-diameter" name="pole-1-upper-diameter" type="number" min="0.1" step="any" aria-describedby="pole-1-upper-diameter-unit" /><span id="pole-1-upper-diameter-unit">mm</span></div>
+            </div>
+          </div>
+          <div class="field">
+            <label for="pole-1-thickness"><span class="straight-label">Thickness</span><span class="taper-label">Lower Thickness</span></label>
+            <div class="input-unit"><input id="pole-1-thickness" name="pole-1-thickness" type="number" min="0.1" step="any" aria-describedby="pole-1-thickness-unit" /><span id="pole-1-thickness-unit">mm</span></div>
+            <div class="taper-only">
+              <label for="pole-1-upper-thickness">Upper Thickness</label>
+              <div class="input-unit"><input id="pole-1-upper-thickness" name="pole-1-upper-thickness" type="number" min="0.1" step="any" aria-describedby="pole-1-upper-thickness-unit" /><span id="pole-1-upper-thickness-unit">mm</span></div>
+            </div>
+          </div>
+          <div class="field">
+            <label for="pole-1-height">Height</label>
+            <div class="input-unit"><input id="pole-1-height" name="pole-1-height" type="number" min="0.1" step="any" aria-describedby="pole-1-height-unit" /><span id="pole-1-height-unit">mm</span></div>
+          </div>
+          <div class="field">
+            <label for="pole-1-quantity">Quantity</label>
+            <div class="input-unit"><input id="pole-1-quantity" name="pole-1-quantity" type="number" min="1" step="1" value="1" aria-describedby="pole-1-quantity-unit" /><span id="pole-1-quantity-unit">pcs</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="pole-step" id="pole-step-2" aria-labelledby="pole-title-2">
+        <header class="step-header">
+          <span class="step-number" aria-hidden="true">2</span>
+          <h2 id="pole-title-2">Step Pole 2<small>Pole specifications</small></h2>
+        </header>
+        <div class="pole-fields">
+          <div class="field">
+            <label for="pole-2-name">Pole Name</label>
+            <input id="pole-2-name" name="pole-2-name" type="text" placeholder="e.g., Pole 2" />
+          </div>
+          <div class="field">
+            <label for="pole-2-material">Material</label>
+            <select id="pole-2-material" name="pole-2-material"><option value="STK400">STK400</option><option value="STK490">STK490</option></select>
+          </div>
+          <div class="field">
+            <label for="pole-2-type">Pole Type</label>
+            <select id="pole-2-type" name="pole-2-type"><option value="straight">Straight</option><option value="tapered">Tapered</option></select>
+          </div>
+          <div class="field">
+            <label for="pole-2-diameter"><span class="straight-label">Diameter</span><span class="taper-label">Lower Diameter</span></label>
+            <div class="input-unit"><input id="pole-2-diameter" name="pole-2-diameter" type="number" min="0.1" step="any" aria-describedby="pole-2-diameter-unit" /><span id="pole-2-diameter-unit">mm</span></div>
+            <div class="taper-only">
+              <label for="pole-2-upper-diameter">Upper Diameter</label>
+              <div class="input-unit"><input id="pole-2-upper-diameter" name="pole-2-upper-diameter" type="number" min="0.1" step="any" aria-describedby="pole-2-upper-diameter-unit" /><span id="pole-2-upper-diameter-unit">mm</span></div>
+            </div>
+          </div>
+          <div class="field">
+            <label for="pole-2-thickness"><span class="straight-label">Thickness</span><span class="taper-label">Lower Thickness</span></label>
+            <div class="input-unit"><input id="pole-2-thickness" name="pole-2-thickness" type="number" min="0.1" step="any" aria-describedby="pole-2-thickness-unit" /><span id="pole-2-thickness-unit">mm</span></div>
+            <div class="taper-only">
+              <label for="pole-2-upper-thickness">Upper Thickness</label>
+              <div class="input-unit"><input id="pole-2-upper-thickness" name="pole-2-upper-thickness" type="number" min="0.1" step="any" aria-describedby="pole-2-upper-thickness-unit" /><span id="pole-2-upper-thickness-unit">mm</span></div>
+            </div>
+          </div>
+          <div class="field">
+            <label for="pole-2-height">Height</label>
+            <div class="input-unit"><input id="pole-2-height" name="pole-2-height" type="number" min="0.1" step="any" aria-describedby="pole-2-height-unit" /><span id="pole-2-height-unit">mm</span></div>
+          </div>
+          <div class="field">
+            <label for="pole-2-quantity">Quantity</label>
+            <div class="input-unit"><input id="pole-2-quantity" name="pole-2-quantity" type="number" min="1" step="1" value="1" aria-describedby="pole-2-quantity-unit" /><span id="pole-2-quantity-unit">pcs</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="pole-step" id="pole-step-3" aria-labelledby="pole-title-3">
+        <header class="step-header">
+          <span class="step-number" aria-hidden="true">3</span>
+          <h2 id="pole-title-3">Step Pole 3<small>Pole specifications</small></h2>
+        </header>
+        <div class="pole-fields">
+          <div class="field">
+            <label for="pole-3-name">Pole Name</label>
+            <input id="pole-3-name" name="pole-3-name" type="text" placeholder="e.g., Pole 3" />
+          </div>
+          <div class="field">
+            <label for="pole-3-material">Material</label>
+            <select id="pole-3-material" name="pole-3-material"><option value="STK400">STK400</option><option value="STK490">STK490</option></select>
+          </div>
+          <div class="field">
+            <label for="pole-3-type">Pole Type</label>
+            <select id="pole-3-type" name="pole-3-type"><option value="straight">Straight</option><option value="tapered">Tapered</option></select>
+          </div>
+          <div class="field">
+            <label for="pole-3-diameter"><span class="straight-label">Diameter</span><span class="taper-label">Lower Diameter</span></label>
+            <div class="input-unit"><input id="pole-3-diameter" name="pole-3-diameter" type="number" min="0.1" step="any" aria-describedby="pole-3-diameter-unit" /><span id="pole-3-diameter-unit">mm</span></div>
+            <div class="taper-only">
+              <label for="pole-3-upper-diameter">Upper Diameter</label>
+              <div class="input-unit"><input id="pole-3-upper-diameter" name="pole-3-upper-diameter" type="number" min="0.1" step="any" aria-describedby="pole-3-upper-diameter-unit" /><span id="pole-3-upper-diameter-unit">mm</span></div>
+            </div>
+          </div>
+          <div class="field">
+            <label for="pole-3-thickness"><span class="straight-label">Thickness</span><span class="taper-label">Lower Thickness</span></label>
+            <div class="input-unit"><input id="pole-3-thickness" name="pole-3-thickness" type="number" min="0.1" step="any" aria-describedby="pole-3-thickness-unit" /><span id="pole-3-thickness-unit">mm</span></div>
+            <div class="taper-only">
+              <label for="pole-3-upper-thickness">Upper Thickness</label>
+              <div class="input-unit"><input id="pole-3-upper-thickness" name="pole-3-upper-thickness" type="number" min="0.1" step="any" aria-describedby="pole-3-upper-thickness-unit" /><span id="pole-3-upper-thickness-unit">mm</span></div>
+            </div>
+          </div>
+          <div class="field">
+            <label for="pole-3-height">Height</label>
+            <div class="input-unit"><input id="pole-3-height" name="pole-3-height" type="number" min="0.1" step="any" aria-describedby="pole-3-height-unit" /><span id="pole-3-height-unit">mm</span></div>
+          </div>
+          <div class="field">
+            <label for="pole-3-quantity">Quantity</label>
+            <div class="input-unit"><input id="pole-3-quantity" name="pole-3-quantity" type="number" min="1" step="1" value="1" aria-describedby="pole-3-quantity-unit" /><span id="pole-3-quantity-unit">pcs</span></div>
+          </div>
+        </div>
+      </section>
+    </section>
     <main class="workspace">
+      <p id="status" role="status" aria-live="polite"></p>
       <svg id="drawing" class="canvas-a4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 210 297" role="img" aria-labelledby="drawing-title drawing-description">
-        <title id="drawing-title">Persegi panjang parametrik pada A4</title>
-        <desc id="drawing-description">Gambar dengan koordinat engineering dalam milimeter, centerline, dan garis dimensi.</desc>
+        <title id="drawing-title">Halaman A4 skematik tiang</title>
+        <desc id="drawing-description">Skematik tiang yang diperbarui berdasarkan input diameter, tinggi, dan jumlah pole.</desc>
         <g id="drawing-content"></g>
       </svg>
     </main>

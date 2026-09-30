@@ -4,21 +4,65 @@
 
 body {
   margin: 0;
-  background: #e5e7eb;
+  background: #eee;
   font-family: Arial, sans-serif;
-  color: #172033;
+  color: #111;
+  font-size: 14px;
 }
 
-.controls { max-width: 794px; margin: 24px auto 0; padding: 20px; background: white; border-radius: 8px; }
-.controls strong { display: block; margin-bottom: 16px; }
-.controls label { display: inline-flex; align-items: center; gap: 8px; margin: 0 20px 12px 0; }
-.controls input { width: 110px; padding: 8px; border: 1px solid #8993a2; border-radius: 4px; }
-.controls p { margin: 8px 0 0; font-size: 14px; line-height: 1.5; }
-#status { color: #46566d; }
+.controls { width: 100%; background: #fff; }
+.pole-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; padding: 24px 16px; border-bottom: 1px solid #ddd; }
+.pole-count-badge { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-width: 116px; height: 42px; padding: 0 16px; border: 1px solid #ccc; border-radius: 8px; white-space: nowrap; }
+.count-divider { color: #777; }
+.count-field { width: 180px; }
+input, select, button { font: inherit; color: inherit; }
+.field input, .field select, .count-field select { width: 100%; min-width: 0; height: 42px; padding: 0 12px; border: 1px solid #bbb; border-radius: 8px; background: #fff; }
+select { cursor: pointer; }
+input::placeholder { color: #777; }
+input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px solid #111; outline-offset: 3px; }
+#pole-count-confirm { width: 100px; height: 42px; border: 1px solid #ddd; border-radius: 8px; background: #fafafa; color: #888; cursor: not-allowed; }
+.pole-step { padding: 24px 16px; border-bottom: 1px solid #ddd; }
+.step-header { display: flex; align-items: center; gap: 12px; padding-bottom: 16px; margin-bottom: 26px; border-bottom: 1px solid #ddd; }
+.step-number { display: grid; place-items: center; width: 40px; height: 40px; flex-shrink: 0; border-radius: 8px; background: #111; color: #fff; font-weight: bold; }
+.step-header h2 { margin: 0; font-size: 14px; font-weight: 600; }
+.step-header small { display: block; margin-top: 5px; color: #666; font-size: 12px; font-weight: normal; }
+.pole-fields { display: grid; grid-template-columns: minmax(180px, 2.5fr) repeat(2, minmax(110px, 1fr)) repeat(3, minmax(130px, 1.5fr)) minmax(100px, 1fr); gap: 12px; }
+.field { min-width: 0; }
+.field label { display: block; margin-bottom: 10px; font-size: 13px; }
+/* Keep the existing columns; upper dimensions sit below lower dimensions. */
+.taper-only, .taper-label { display: none; }
+.taper-only { margin-top: 16px; }
+.pole-fields:has(select option[value="tapered"]:checked) .taper-only { display: block; }
+.pole-fields:has(select option[value="tapered"]:checked) .taper-label { display: inline; }
+.pole-fields:has(select option[value="tapered"]:checked) .straight-label { display: none; }
+.input-unit { position: relative; }
+.input-unit input { padding-right: 48px; }
+.input-unit span { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: #666; font-size: 13px; pointer-events: none; }
+
+/* CSS-only row selection. All three rows have stable IDs for future JavaScript. */
+#pole-step-2, #pole-step-3, .count-2, .count-3 { display: none; }
+.controls:has(#pole-count option[value="2"]:checked) #pole-step-2,
+.controls:has(#pole-count option[value="3"]:checked) #pole-step-2,
+.controls:has(#pole-count option[value="3"]:checked) #pole-step-3 { display: block; }
+.controls:has(#pole-count option[value="2"]:checked) .count-1,
+.controls:has(#pole-count option[value="3"]:checked) .count-1 { display: none; }
+.controls:has(#pole-count option[value="2"]:checked) .count-2,
+.controls:has(#pole-count option[value="3"]:checked) .count-3 { display: inline; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+
+@media (max-width: 1100px) {
+  .pole-fields { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px 12px; }
+}
+@media (max-width: 600px) {
+  .pole-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .field:first-child { grid-column: 1 / -1; }
+  .pole-toolbar, .pole-step { padding: 20px 16px; }
+}
 
 .workspace {
   min-height: 100vh;
   padding: 32px;
+  overflow-x: auto;
 }
 
 .canvas-a4 {
@@ -31,14 +75,18 @@ body {
 }
 
 /* All SVG stroke widths and text sizes are in paper units (mm). */
-.object-line { fill: none; stroke: #111; stroke-width: 0.5; }
+.object-line { fill: none; stroke: #111; stroke-width: 0.3; }
 .dimension-line { fill: none; stroke: #111; stroke-width: 0.18; }
-.centerline { fill: none; stroke: #555; stroke-width: 0.18; stroke-dasharray: 7 1.5 0.4 1.5 0.4 1.5; }
-.axis-line { fill: none; stroke: #35689a; stroke-width: 0.25; }
+.center-line { fill: none; stroke: #555; stroke-width: 0.18; stroke-dasharray: 7 1.5 0.4 1.5 ; }
+.axis-line { fill: none; stroke: #555; stroke-width: 0.25; }
 .drawing-text { fill: #111; font-family: Arial, sans-serif; font-size: 3.5px; }
 .heading { font-size: 5px; font-weight: bold; }
-.note { fill: #536170; font-size: 3px; }
-.axis-label { fill: #35689a; font-size: 3px; }
+.note { fill: #555; font-size: 3px; }
+.axis-label { fill: #555; font-size: 3px; }
+.baseplate-face {
+  fill: #fff;
+}
+.lighting-line { fill: none; stroke: #111; stroke-width: 0.15; }
 
 @page {
   size: A4 portrait;
@@ -54,6 +102,7 @@ body {
   .workspace {
     min-height: 0;
     padding: 0;
+    overflow: visible;
   }
 
   .canvas-a4 {
