@@ -637,6 +637,32 @@ function createHeightDimensionLabels(model, useHeightPrefix = true) {
   };
 }
 
+// Shared engineering coordinates for the ground/reference line and dimensions.
+function getGroundReference(engine) {
+  const baseplateWidth = 350; // Match drawBaseplate().
+  const extension = 16 / engine.scale; // 12 paper mm outside each baseplate edge.
+  return {
+    left: { x: -baseplateWidth / 2 - extension, y: 0 },
+    right: { x: baseplateWidth / 2 + extension, y: 0 },
+    baseplateRight: { x: baseplateWidth / 2, y: 0 }
+  };
+}
+
+function drawGroundReference(engine) {
+  const reference = getGroundReference(engine);
+  engine.drawLine(reference.left, reference.right, "dimension-line");
+  const left = engine.toSvg(reference.left.x, 0);
+  const right = engine.toSvg(reference.right.x, 0);
+  const arrowTip = engine.toSvg(reference.baseplateRight.x, 0);
+
+  // G.L. has no arrow. The inspection arrow points left at the baseplate edge.
+  engine.drawText(left.x + 1, left.y - 2, "G.L.");
+  engine.drawArrow(arrowTip, 0);
+  engine.drawText(right.x, right.y - 2, "検討部", "drawing-text", {
+    "text-anchor": "end"
+  });
+}
+
 // Draw Dimension for Pole
 function drawPoleDimensions(engine, model, labels) {
 
@@ -646,10 +672,9 @@ function drawPoleDimensions(engine, model, labels) {
   const totalOffset = individualOffset - 8 ; // Total dimension line is slightly further out than individual dimensions.
   const overallMaxDiameter = Math.max(...poles.flatMap(pole => [pole.Lower_D, pole.Upper_D]));
   const dimensionX = engine.toSvg(-overallMaxDiameter / 2, 0).x + individualOffset;
-  const baseplateWidth = 350; // Example width for the baseplate
   // Each joint uses the outermost edge of the two adjacent pole ends.
   // Both touching dimensions must leave the same 30 mm engineering gap.
-  const boundaryX = [-baseplateWidth / 2]; // Bottom dimensions start at the left baseplate edge.
+  const boundaryX = [getGroundReference(engine).left.x]; // Shared lower reference.
   for (let index = 0; index < poles.length - 1; index++) {
     boundaryX.push(-Math.max(poles[index].Upper_D, poles[index + 1].Lower_D) / 2);
   }
@@ -726,9 +751,10 @@ function drawTaperCenterDimensions(engine, model, labels) {
       const diameterAtCenter = pole.Lower_D +
         (pole.Upper_D - pole.Lower_D) * centerHeight / pole.height;
       // At the base, clear the baseplate; at joints, clear both touching poles.
-      const lowerWidth = index === 0 ? 350 : Math.max(pole.Lower_D, poles[index - 1].Upper_D);
+      const lowerX = index === 0 ? getGroundReference(engine).left.x
+        : -Math.max(pole.Lower_D, poles[index - 1].Upper_D) / 2;
       engine.drawDimension(
-        { x: -lowerWidth / 2, y: bottomY },
+        { x: lowerX, y: bottomY },
         { x: -diameterAtCenter / 2, y: centerY },
         "vertical", offset, labels?.poles.get(pole)?.center ?? format(centerHeight), dimensionX
       );
@@ -754,7 +780,6 @@ function drawTaperCenterDimensions(engine, model, labels) {
 // Draw Dimension for Opening Box
 function drawOpeningBoxDimensions(engine, model) {
   const bottomPole = model.poles[model.poles.length - 1];
-  const baseplateWidth = 350; // Match drawBaseplate().
   const heightOpeningAtCenter = 750; // Match drawOpeningBoxCenterLine().
   const extension = 100; // Engineering mm: opening centerline extension.
   const taperRatio = calculateTaperRatio(
@@ -763,7 +788,7 @@ function drawOpeningBoxDimensions(engine, model) {
     bottomPole.height
   );
   const diameterPoleAtOpening = bottomPole.Lower_D - heightOpeningAtCenter * taperRatio;
-  const baseplatePoint = { x: -baseplateWidth / 2, y: 0 };
+  const baseplatePoint = getGroundReference(engine).left;
   const centerlineEnd = {
     x: -diameterPoleAtOpening / 2 - 22.7 - extension,
     y: heightOpeningAtCenter
@@ -948,6 +973,7 @@ function render(model) {
   // Center lines
   drawPoleCenterLine(engine, model);
   drawOpeningBoxCenterLine(engine, model);
+  drawGroundReference(engine);
   // Dimension lines
   const heightLabels = createHeightDimensionLabels(model, true); // false = values without H.
   engine.collectDimensions = true;
