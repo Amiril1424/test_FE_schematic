@@ -64,6 +64,9 @@ class DrawingEngine {
     this.root = root;
     this.origin = origin;
     this.scale = scale; // paper mm / actual mm
+    this.dimensionSegments = []; // Paper coordinates, used to avoid leader collisions.
+    this.diameterAnnotations = [];
+    this.collectDimensions = false;
   }
   
   // ///////////METHOD in Class DrawingEngine////////////////////////////////
@@ -116,6 +119,7 @@ class DrawingEngine {
   }
 
   paperLine(a, b, className = "dimension-line") {
+    if (this.collectDimensions) this.dimensionSegments.push({ a, b });
     // Nilai default className adalah "dimension-line" jika tidak diberikan argumen ketiga.
     return this.element("line", { x1: a.x, y1: a.y, x2: b.x, y2: b.y, class: className });
   }
@@ -137,7 +141,7 @@ class DrawingEngine {
 
   // Leader target and elbow use engineering mm (Y up).
   // Shelf width and text spacing use paper mm, so annotations stay readable.
-  drawLeader(target, elbow, topText, bottomText = "", shelfWidth = 0) {
+  drawLeader(target, elbow, topText, bottomText = "", shelfWidth = 0, textAlign = "center") {
     const tip = this.toSvg(target.x, target.y);
     const bend = this.toSvg(elbow.x, elbow.y);
     const direction = bend.x >= tip.x ? 1 : -1;
@@ -157,9 +161,16 @@ class DrawingEngine {
       bottom ? bottom.getComputedTextLength() + textPadding * 2 : 0
     );
     const end = { x: bend.x + direction * width, y: bend.y };
-    const textX = (bend.x + end.x) / 2;
+    const textX = textAlign === "left"
+      ? Math.min(bend.x, end.x) + textPadding
+      : (bend.x + end.x) / 2;
+    const textAnchor = textAlign === "left" ? "start" : "middle";
     top.setAttribute("x", textX);
-    if (bottom) bottom.setAttribute("x", textX);
+    top.setAttribute("text-anchor", textAnchor);
+    if (bottom) {
+      bottom.setAttribute("x", textX);
+      bottom.setAttribute("text-anchor", textAnchor);
+    }
 
     this.paperLine(tip, bend, "dimension-line");
     this.paperLine(bend, end, "dimension-line");
@@ -182,7 +193,67 @@ class DrawingEngine {
 
   // Object name: one line above the shelf. Default name for now: Lighting.
   drawObjectLeader(target, elbow, name = "Lighting", shelfWidth = 0) {
-    this.drawLeader(target, elbow, name, "", shelfWidth);
+    const fittedElbow = this.fitObjectLeader(target, elbow, name, shelfWidth);
+    this.drawLeader(target, fittedElbow, name, "", shelfWidth);
+  }
+
+  // Shorten the diagonal without changing its angle. Test the diagonal,
+  // horizontal shelf and text against dimension lines already drawn.
+  fitObjectLeader(target, elbow, name, shelfWidth) {
+    if (this.dimensionSegments.length === 0) return elbow;
+    const tip = this.toSvg(target.x, target.y);
+    const bend = this.toSvg(elbow.x, elbow.y);
+    const label = this.drawText(0, 0, name);
+    const textWidth = label.getComputedTextLength();
+    const textBox = label.getBBox();
+    label.remove();
+    const width = Math.max(shelfWidth, textWidth + 2);
+    const side = bend.x >= tip.x ? 1 : -1;
+    const textClearance = 1.5; // Paper mm around the text.
+    const lineClearance = 0.3; // Thin lines need less clearance than text.
+
+    const pointDistance = (p, a, b) => {
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const lengthSquared = dx * dx + dy * dy;
+      const t = lengthSquared === 0 ? 0 : Math.max(0, Math.min(1,
+        ((p.x - a.x) * dx + (p.y - a.y) * dy) / lengthSquared));
+      return Math.hypot(p.x - a.x - t * dx, p.y - a.y - t * dy);
+    };
+    const segmentsNear = (a, b, c, d, clearance) => {
+      const cross = (p, q, r) => (q.x - p.x) * (r.y - p.y) - (q.y - p.y) * (r.x - p.x);
+      const crosses = cross(a, b, c) * cross(a, b, d) < 0 && cross(c, d, a) * cross(c, d, b) < 0;
+      return crosses || Math.min(pointDistance(a, c, d), pointDistance(b, c, d),
+        pointDistance(c, a, b), pointDistance(d, a, b)) < clearance;
+    };
+
+    // Prefer the original length. Reduce both X and Y together if obstructed.
+    let chosenFactor = 1;
+    for (let step = 0; step <= 16; step++) {
+      const factor = 1 - step * 0.05;
+      const candidate = { x: tip.x + (bend.x - tip.x) * factor, y: tip.y + (bend.y - tip.y) * factor };
+      const end = { x: candidate.x + side * width, y: candidate.y };
+      const textX = (candidate.x + end.x) / 2;
+      const left = textX - textWidth / 2;
+      const right = textX + textWidth / 2;
+      const top = candidate.y - 2 + textBox.y;
+      const bottom = top + textBox.height;
+      const corners = [{x:left,y:top}, {x:right,y:top}, {x:right,y:bottom}, {x:left,y:bottom}];
+      const inside = p => p.x >= left && p.x <= right && p.y >= top && p.y <= bottom;
+      const blocked = this.dimensionSegments.some(({ a, b }) =>
+        segmentsNear(tip, candidate, a, b, lineClearance) ||
+        segmentsNear(candidate, end, a, b, lineClearance) ||
+        inside(a) || inside(b) || corners.some((p, i) =>
+          segmentsNear(p, corners[(i + 1) % 4], a, b, textClearance))
+      );
+      if (!blocked) {
+        chosenFactor = factor;
+        break;
+      }
+    }
+    return {
+      x: target.x + (elbow.x - target.x) * chosenFactor,
+      y: target.y + (elbow.y - target.y) * chosenFactor
+    };
   }
 
   // Arrow size remains constant on paper, regardless of model scale.
@@ -230,6 +301,81 @@ class DrawingEngine {
       "text-anchor": "middle",
       ...(horizontal ? {} : { transform: `rotate(-90 ${x} ${y})` }),
     });
+  }
+
+  // Diameter and y use engineering mm; rise uses paper mm.
+  drawDiameterDimension(diameter, y, direction, rise = 18) {
+    const left = this.toSvg(-diameter / 2, y);
+    const right = this.toSvg(diameter / 2, y);
+    const label = this.drawText(0, 0, `Ø${format(diameter)}`);
+    const textWidth = label.getComputedTextLength();
+    const textBox = label.getBBox();
+    const distance = Math.max(rise, diameter * this.scale / 2 + 8);
+    const preferredUp = direction === "up";
+    // Try the requested quadrant, then the other side, then opposite Y.
+    const choices = [[1, preferredUp], [-1, preferredUp], [1, !preferredUp], [-1, !preferredUp]];
+    const intersects = (a, b) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+    const lineHitsBox = (a, b, box) => {
+      let lo = 0, hi = 1;
+      for (const [axis, min, max] of [["x", box.left, box.right], ["y", box.top, box.bottom]]) {
+        const delta = b[axis] - a[axis];
+        if (Math.abs(delta) < 1e-9) {
+          if (a[axis] < min || a[axis] > max) return false;
+        } else {
+          const t1 = (min - a[axis]) / delta, t2 = (max - a[axis]) / delta;
+          lo = Math.max(lo, Math.min(t1, t2));
+          hi = Math.min(hi, Math.max(t1, t2));
+          if (lo > hi) return false;
+        }
+      }
+      return true;
+    };
+    let selected;
+    for (const [side, up] of choices) {
+      const dx = side * distance, dy = up ? -distance : distance;
+      const p = { x: left.x + dx, y: left.y + dy };
+      const q = { x: right.x + dx, y: right.y + dy };
+      const outside = !up && textWidth + 2 > q.x - p.x;
+      const textX = outside ? (side > 0 ? q.x + 4 : p.x - 4) : (p.x + q.x) / 2;
+      const anchor = outside ? (side > 0 ? "start" : "end") : "middle";
+      const textLeft = anchor === "start" ? textX : anchor === "end" ? textX - textWidth : textX - textWidth / 2;
+      const box = { left: textLeft - 1.5, right: textLeft + textWidth + 1.5,
+        top: p.y - 2 + textBox.y - 1.5, bottom: p.y - 2 + textBox.y + textBox.height + 1.5 };
+      const segments = [[left, p], [right, q], [{x:p.x-5,y:p.y}, {x:q.x+5,y:q.y}]];
+      let score = this.diameterAnnotations.filter(previous =>
+        intersects(box, previous.box) || previous.segments.some(([a,b]) => lineHitsBox(a,b,box)) ||
+        segments.some(([a,b]) => lineHitsBox(a,b,previous.box))).length;
+      // Avoid the existing height dimensions too, particularly on the left.
+      score += this.dimensionSegments.filter(({a,b}) => lineHitsBox(a,b,box)).length;
+      if (box.left < 5 || box.right > 205 || box.top < 5 || box.bottom > 292) score += 100;
+      if (!selected || score < selected.score) selected = { dx, dy, textX, anchor, box, segments, score };
+      if (score === 0) break;
+    }
+    // Equal horizontal/vertical displacement guarantees a 45-degree angle.
+    const { dx, dy } = selected;
+    const length = Math.hypot(dx, dy);
+    const unitX = dx / length;
+    const unitY = dy / length;
+    const gap = 30 * this.scale;
+    const p = { x: left.x + dx, y: left.y + dy };
+    const q = { x: right.x + dx, y: right.y + dy };
+
+    // Parallel diagonal extension lines with a 30 engineering mm gap.
+    for (const [anchor, end] of [[left, p], [right, q]]) {
+      this.paperLine(
+        { x: anchor.x + unitX * gap, y: anchor.y + unitY * gap },
+        { x: end.x + unitX * 1.5, y: end.y + unitY * 1.5 }
+      );
+    }
+
+    // Outside arrows keep small diameters readable.
+    this.paperLine({ x: p.x - 5, y: p.y }, { x: q.x + 5, y: q.y });
+    this.drawArrow(p, Math.PI);
+    this.drawArrow(q, 0);
+    label.setAttribute("x", selected.textX);
+    label.setAttribute("y", p.y - 2);
+    label.setAttribute("text-anchor", selected.anchor);
+    this.diameterAnnotations.push(selected);
   }
 
   drawArc(start, end, radius, sweep = 1, className = "object-line") {
@@ -342,6 +488,22 @@ function calculateTaperRatio(lowerDiameter, upperDiameter, totalLength) {
   return (lowerDiameter - upperDiameter) / totalLength;
 }
 
+// Center point Tapered Pole
+function centerPointTaperedPole(lowerDiameter, upperDiameter, totalLength) {
+  if (
+    ![lowerDiameter, upperDiameter, totalLength].every(Number.isFinite) || 
+    lowerDiameter <= 0 ||
+    upperDiameter <= 0 ||
+    totalLength <= 0) {
+    throw new RangeError("Dimensions must be finite numbers and totalLength must be greater than zero.");
+  }
+  return Math.round(
+    (totalLength/3) * 
+    (lowerDiameter + 2 * upperDiameter) / 
+    (lowerDiameter + upperDiameter)
+    );
+}
+
 // Draw Opening Part Box type
 function drawOpeningBox(engine, model) {
   const Low_D = model.poles[model.poles.length - 1].Lower_D; // The last pole is at the bottom, next to the opening.
@@ -450,7 +612,33 @@ function drawOpeningBoxCenterLine(engine, model) {
 
 
 // -----------Draw Dimension Line---------------------
-function drawPoleDimensions(engine, model) {
+// Prepare labels in INPUT order (top to bottom), independently of drawing order.
+// Set useHeightPrefix to false for projects that need numeric dimensions only.
+function createHeightDimensionLabels(model, useHeightPrefix = true) {
+  const multiplePoles = model.poles.length > 1;
+  const labelFor = (index, value, isCenter = false) => useHeightPrefix
+    ? `H${index}${isCenter ? "'" : ""}=${format(value)}`
+    : format(value);
+  const poles = new Map();
+
+  model.poles.forEach((pole, inputIndex) => {
+    const heightIndex = multiplePoles ? inputIndex + 2 : 1;
+    poles.set(pole, {
+      length: labelFor(heightIndex, pole.height),
+      center: pole.type === "tapered"
+        ? labelFor(heightIndex, centerPointTaperedPole(pole.Lower_D, pole.Upper_D, pole.height), true)
+        : null
+    });
+  });
+
+  return {
+    total: labelFor(1, model.poles.reduce((sum, pole) => sum + pole.height, 0)),
+    poles
+  };
+}
+
+// Draw Dimension for Pole
+function drawPoleDimensions(engine, model, labels) {
 
   const poles = [...model.poles].reverse();
   let currentY = 0;
@@ -476,7 +664,7 @@ function drawPoleDimensions(engine, model) {
       { x: boundaryX[index + 1], y: currentY + h},
       "vertical",
       individualOffset,
-      format(h),
+      labels?.poles.get(pole)?.length ?? format(h),
       dimensionX
     );
     currentY += h;
@@ -491,12 +679,79 @@ function drawPoleDimensions(engine, model) {
       { x: boundaryX[boundaryX.length - 1], y: totalHeight},
       "vertical",
       totalOffset,
-      format(totalHeight),
+      labels?.total ?? format(totalHeight),
       dimensionX + totalOffset - individualOffset
     );
   }
+
+  // One Tapered pole enables diameter dimensions for the entire assembly.
+  if (!poles.some(pole => pole.type === "tapered")) return;
+
+  // Reversed order: bottom pole first, Pole 1 last (at the top).
+  const riseFor = pole => Math.min(12, pole.height * engine.scale / 4);
+  // Reserve the top-end position first; crowded joint labels try other quadrants.
+  const topPole = poles[poles.length - 1];
+  engine.drawDiameterDimension(topPole.Upper_D, currentY, "down", riseFor(topPole));
+  engine.drawDiameterDimension(poles[0].Lower_D, 0, "up", riseFor(poles[0]));
+
+  let jointY = 0;
+  for (let index = 0; index < poles.length - 1; index++) {
+    const lowerPole = poles[index];
+    const upperPole = poles[index + 1];
+    jointY += lowerPole.height;
+
+    // Lower diameter of the upper pole: right/up (quadrant 1).
+    engine.drawDiameterDimension(upperPole.Lower_D, jointY, "up", riseFor(upperPole));
+
+    // Equal joint diameters share one label; unequal ones get a second label.
+    if (Math.abs(upperPole.Lower_D - lowerPole.Upper_D) > 1e-9) {
+      engine.drawDiameterDimension(lowerPole.Upper_D, jointY, "down", riseFor(lowerPole));
+    }
+  }
+
 }
 
+// Center height measured from each Tapered segment's own lower end.
+function drawTaperCenterDimensions(engine, model, labels) {
+  const poles = [...model.poles].reverse(); // Bottom to top, matching drawPole().
+  const maxDiameter = Math.max(...poles.flatMap(pole => [pole.Lower_D, pole.Upper_D]));
+  const offset = -40 + 8; // One 8 paper mm column inside the pole-length dimension.
+  const dimensionX = engine.toSvg(-maxDiameter / 2, 0).x + offset;
+  let bottomY = 0;
+
+  for (const [index, pole] of poles.entries()) {
+    if (pole.type === "tapered") {
+      const centerHeight = centerPointTaperedPole(pole.Lower_D, pole.Upper_D, pole.height);
+      const centerY = bottomY + centerHeight;
+      const diameterAtCenter = pole.Lower_D +
+        (pole.Upper_D - pole.Lower_D) * centerHeight / pole.height;
+      // At the base, clear the baseplate; at joints, clear both touching poles.
+      const lowerWidth = index === 0 ? 350 : Math.max(pole.Lower_D, poles[index - 1].Upper_D);
+      engine.drawDimension(
+        { x: -lowerWidth / 2, y: bottomY },
+        { x: -diameterAtCenter / 2, y: centerY },
+        "vertical", offset, labels?.poles.get(pole)?.center ?? format(centerHeight), dimensionX
+      );
+
+      const textX = dimensionX + 4;
+      const textY = engine.toSvg(0, bottomY + centerHeight / 2).y;
+      const label = engine.drawText(textX, textY, "(荷重中心高さ)", "drawing-text", {
+        "text-anchor": "middle",
+        transform: `rotate(-90 ${textX} ${textY})`
+      });
+      // Keep the rotated note inside its own dimension span on short segments.
+      const availableLength = Math.max(0.1, centerHeight * engine.scale - 4);
+      const textLength = label.getComputedTextLength();
+      if (textLength > availableLength) {
+        label.setAttribute("font-size", `${3.5 * availableLength / textLength}px`);
+        label.style.fontSize = `${3.5 * availableLength / textLength}px`;
+      }
+    }
+    bottomY += pole.height;
+  }
+}
+
+// Draw Dimension for Opening Box
 function drawOpeningBoxDimensions(engine, model) {
   const bottomPole = model.poles[model.poles.length - 1];
   const baseplateWidth = 350; // Match drawBaseplate().
@@ -516,7 +771,9 @@ function drawOpeningBoxDimensions(engine, model) {
   const individualOffset = -40; // Same reference as drawPoleDimensions().
   const dimensionSpacing = 8; // Paper mm between the pole and opening dimensions.
   const overallMaxDiameter = Math.max(...model.poles.flatMap(pole => [pole.Lower_D, pole.Upper_D]));
-  const offset = individualOffset + dimensionSpacing;
+  // Only the bottom pole determines whether its center-height column is needed.
+  const column = bottomPole.type === "tapered" ? 2 : 1;
+  const offset = individualOffset + dimensionSpacing * column;
   const dimensionX = engine.toSvg(-overallMaxDiameter / 2, 0).x + offset;
 
   // drawDimension() supplies the 30 mm engineering gap at both anchors.
@@ -591,7 +848,9 @@ function drawOpeningBoxLeader(engine, model) {
     bottomPole.height
   );
   const diameterPoleAtOpening = bottomPole.Lower_D - heightOpeningAtCenter * taperRatio;
-  const leaderOffset = 12 / engine.scale; // 12 paper mm in engineering units.
+  // Always try the normal 12 paper mm first. fitObjectLeader() checks actual
+  // scaled dimension positions and measured text before shortening it.
+  const leaderOffset = 12 / engine.scale;
 
   // Intersection of Box2's left side and the opening centerline.
   const target = {
@@ -604,6 +863,46 @@ function drawOpeningBoxLeader(engine, model) {
   };
 
   engine.drawObjectLeader(target, elbow, "開口部");
+}
+
+// Thickness/material leader for each Tapered pole, in bottom-to-top order.
+function drawLeaderPoleTaperThickness(engine, model) {
+  const poles = [...model.poles].reverse();
+  const leaderOffset = 12 / engine.scale; // Paper mm converted to engineering mm.
+  let bottomY = 0;
+
+  for (const pole of poles) {
+    if (pole.type === "tapered") {
+      const ratio = calculateTaperRatio(pole.Lower_D, pole.Upper_D, pole.height);
+      const roundedRatio = Number(ratio.toFixed(5));
+      const description = roundedRatio === 0.01
+        ? "1/100テーパー"
+        : "温間スピニングテーパー";
+      // thickness currently reads the Lower Thickness input.
+      const thicknessText = Number.isFinite(pole.thickness) && pole.thickness > 0
+        ? pole.thickness.toFixed(1)
+        : "?";
+
+      // Point to the right face at mid-height of this segment.
+      const target = {
+        x: (pole.Lower_D + pole.Upper_D) / 4,
+        y: bottomY + pole.height / 2
+      };
+      const elbow = {
+        x: target.x + leaderOffset,
+        y: target.y + leaderOffset
+      };
+      engine.drawLeader(
+        target,
+        elbow,
+        `${description}(t${thicknessText})`,
+        `(JIS G3444 ${pole.material})`,
+        0,
+        "left"
+      );
+    }
+    bottomY += pole.height;
+  }
 }
 
 
@@ -650,10 +949,15 @@ function render(model) {
   drawPoleCenterLine(engine, model);
   drawOpeningBoxCenterLine(engine, model);
   // Dimension lines
-  drawPoleDimensions(engine, model);
+  const heightLabels = createHeightDimensionLabels(model, true); // false = values without H.
+  engine.collectDimensions = true;
+  drawTaperCenterDimensions(engine, model, heightLabels);
+  drawPoleDimensions(engine, model, heightLabels);
   drawOpeningBoxDimensions(engine, model);
+  engine.collectDimensions = false;
   // Pole leaders (Straight only).
   drawPoleLeader(engine, model);
+  drawLeaderPoleTaperThickness(engine, model);
   drawObjectLeader(engine, model);
   drawOpeningBoxLeader(engine, model);
 
