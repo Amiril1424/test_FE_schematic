@@ -20,7 +20,6 @@ input, select, button { font: inherit; color: inherit; }
 select { cursor: pointer; }
 input::placeholder { color: #777; }
 input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px solid #111; outline-offset: 3px; }
-#pole-count-confirm { width: 100px; height: 42px; border: 1px solid #ddd; border-radius: 8px; background: #fafafa; color: #888; cursor: not-allowed; }
 .pole-step { padding: 24px 16px; border-bottom: 1px solid #ddd; }
 .step-header { display: flex; align-items: center; gap: 12px; padding-bottom: 16px; margin-bottom: 26px; border-bottom: 1px solid #ddd; }
 .step-number { display: grid; place-items: center; width: 40px; height: 40px; flex-shrink: 0; border-radius: 8px; background: #111; color: #fff; font-weight: bold; }
@@ -59,6 +58,60 @@ input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px s
   .pole-toolbar, .pole-step { padding: 20px 16px; }
 }
 
+/* Arm inputs: three columns, with IDs independent of the pole inputs. */
+.arm-count-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+.arm-count-controls .count-field { width: 130px; }
+.arm-step { padding: 24px 16px; border-bottom: 1px solid #ddd; }
+.arm-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px 12px; }
+.arm-fields .input-unit input { padding-right: 70px; }
+#arm-step-2, .arm-count-0, .arm-count-2 { display: none; }
+.controls:has(#arm-count option[value="0"]:checked) .arm-step,
+.controls:has(#arm-count option[value="0"]:checked) .arm-count-1 { display: none; }
+.controls:has(#arm-count option[value="0"]:checked) .arm-count-0 { display: inline; }
+.controls:has(#arm-count option[value="2"]:checked) #arm-step-2 { display: block; }
+.controls:has(#arm-count option[value="2"]:checked) .arm-count-1 { display: none; }
+.controls:has(#arm-count option[value="2"]:checked) .arm-count-2 { display: inline; }
+@media (max-width: 600px) {
+  .arm-fields { grid-template-columns: 1fr; }
+  .arm-step { padding: 20px 16px; }
+}
+
+/* Direct Object and OverHead Wire forms; visibility follows the count selector. */
+.object-count-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+.object-step { padding: 24px 16px; border-bottom: 1px solid #ddd; }
+.do-fields { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 20px 12px; }
+.ohw-fields { display: grid; grid-template-columns: 2fr repeat(5, minmax(0, 1fr)); gap: 20px 12px; }
+.object-step .input-unit input { padding-right: 70px; }
+.do-step, .do-count-1 { display: none; }
+.controls:has(#do-count option[value="1"]:checked) .do-count-0 { display: none; }
+.controls:has(#do-count option[value="1"]:checked) .do-count-1 { display: inline; }
+/* DO details stay hidden for now; inputs and IDs remain available to JavaScript. */
+.ohw-step, .ohw-count-1, .ohw-count-2, .ohw-count-3, .ohw-count-4 { display: none; }
+.controls:has(#ohw-count option[value="1"]:checked) .ohw-count-0 { display: none; }
+.controls:has(#ohw-count option[value="1"]:checked) .ohw-count-1 { display: inline; }
+.controls:has(#ohw-count option[value="1"]:checked) #ohw-step-1 { display: block; }
+.controls:has(#ohw-count option[value="2"]:checked) .ohw-count-0 { display: none; }
+.controls:has(#ohw-count option[value="2"]:checked) .ohw-count-2 { display: inline; }
+.controls:has(#ohw-count option[value="2"]:checked) #ohw-step-1 { display: block; }
+.controls:has(#ohw-count option[value="2"]:checked) #ohw-step-2 { display: block; }
+.controls:has(#ohw-count option[value="3"]:checked) .ohw-count-0 { display: none; }
+.controls:has(#ohw-count option[value="3"]:checked) .ohw-count-3 { display: inline; }
+.controls:has(#ohw-count option[value="3"]:checked) #ohw-step-1 { display: block; }
+.controls:has(#ohw-count option[value="3"]:checked) #ohw-step-2 { display: block; }
+.controls:has(#ohw-count option[value="3"]:checked) #ohw-step-3 { display: block; }
+.controls:has(#ohw-count option[value="4"]:checked) .ohw-count-0 { display: none; }
+.controls:has(#ohw-count option[value="4"]:checked) .ohw-count-4 { display: inline; }
+.controls:has(#ohw-count option[value="4"]:checked) #ohw-step-1 { display: block; }
+.controls:has(#ohw-count option[value="4"]:checked) #ohw-step-2 { display: block; }
+.controls:has(#ohw-count option[value="4"]:checked) #ohw-step-3 { display: block; }
+.controls:has(#ohw-count option[value="4"]:checked) #ohw-step-4 { display: block; }
+@media (max-width: 1100px) {
+  .ohw-fields { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 600px) {
+  .do-fields, .ohw-fields { grid-template-columns: 1fr; }
+}
+
 .workspace {
   min-height: 100vh;
   padding: 32px;
@@ -83,7 +136,7 @@ input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px s
 .heading { font-size: 5px; font-weight: bold; }
 .note { fill: #555; font-size: 3px; }
 .axis-label { fill: #555; font-size: 3px; }
-.baseplate-face {
+.baseplate-face, .arm-face, .adapter-face {
   fill: #fff;
 }
 .lighting-line { fill: none; stroke: #111; stroke-width: 0.15; }
