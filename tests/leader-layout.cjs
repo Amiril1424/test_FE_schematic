@@ -21,6 +21,8 @@ fs.mkdirSync('test-results',{recursive:true});
     });
     for(const scenario of [
       {name:'right',angle:0,length:1000},
+      {name:'straight-mid-arm',angle:0,length:180,height:6500,straight:true,middleHeight:4000},
+      {name:'straight-top-arm',angle:0,length:180,height:10000,straight:true,middleHeight:6000},
       {name:'single-short-top',angle:0,length:180,height:10000,threePoles:true},
       {name:'double-short-top',angle:0,length:180,height:10000,threePoles:true,count:2},
       {name:'left',angle:180,length:180,height:6001},
@@ -37,8 +39,11 @@ fs.mkdirSync('test-results',{recursive:true});
         if(s.threePoles) Object.assign(values,{'pole-count':3,'pole-1-type':'straight','pole-1-diameter':75,
           'pole-1-height':2500,'pole-2-type':'tapered','pole-2-diameter':175,'pole-2-upper-diameter':75,
           'pole-2-height':6000,'pole-3-type':'straight','pole-3-diameter':175,'pole-3-height':1600,'pole-3-thickness':4});
+        if(s.straight) Object.assign(values,{'pole-count':3,'pole-1-type':'straight','pole-1-diameter':75,
+          'pole-1-height':2500,'pole-2-type':'straight','pole-2-diameter':175,'pole-2-height':s.middleHeight,
+          'pole-3-type':'straight','pole-3-diameter':195,'pole-3-height':1600,'pole-3-thickness':4});
         for(let i=1;i<=(s.count||1);i++) Object.assign(values,{
-          [`arm-${i}-diameter`]:s.threePoles?60.5:76.3,[`arm-${i}-thickness`]:s.threePoles?3.2:3,[`arm-${i}-height`]:s.height||5001,
+          [`arm-${i}-diameter`]:(s.threePoles||s.straight)?60.5:76.3,[`arm-${i}-thickness`]:(s.threePoles||s.straight)?3.2:3,[`arm-${i}-height`]:s.height||5001,
           [`arm-${i}-length`]:s.length,[`arm-${i}-fix-angle`]:i===2?180:s.angle,[`arm-${i}-vertical-angle`]:5});
         for(const [id,v] of Object.entries(values)) document.getElementById(id).value=v;
         window.dispatchEvent(new CustomEvent('schematic:regenerate'));
@@ -57,12 +62,12 @@ fs.mkdirSync('test-results',{recursive:true});
       });
       await page.locator('#drawing').screenshot({path:`test-results/leaders-${scenario.name}.png`});
       assert(!result.status.includes('no clear'),JSON.stringify(result));
-      assert.equal(result.leaders.length,2,`${scenario.name}: one taper and one shared arm leader required`);
+      assert.equal(result.leaders.length,scenario.straight?4:2,`${scenario.name}: pole and arm leaders required`);
       assert(result.leaders.every(l=>!l.blocked),`${scenario.name}: ${JSON.stringify(result)}`);
       const taper=result.leaders.find(l=>l.top.includes('(t'));
       if(scenario.shortTaper) assert(taper.target.y>400,'Short taper should use connected straight segment');
-      else assert(taper.target.y>1997,'Taper leader must remain on taper segment');
-      console.log(`PASS: ${scenario.name}: taper and arm leaders clear final objects, dimensions and other leaders.`);
+      else if(!scenario.straight) assert(taper.target.y>1997,'Taper leader must remain on taper segment');
+      console.log(`PASS: ${scenario.name}: pole and arm leaders clear final objects, dimensions and other leaders.`);
     }
     assert.deepEqual(errors,[]);
   }finally{await browser.close();}

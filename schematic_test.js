@@ -1341,22 +1341,33 @@ function drawPoleLeader(engine, model) {
   const leaderOffset = 12 / engine.scale; // 12 paper mm expressed in engineering mm.
 
   for (const pole of poles) {
-    const target = {
-      x: pole.Lower_D / 2,
-      y: currentY + pole.height / 2
-    };
-    const elbow = {
-      x: target.x + leaderOffset,
-      y: target.y + leaderOffset
-    };
-
-    engine.drawStraightPoleLeader(
-      target,
-      elbow,
-      pole.Lower_D,
-      pole.thickness,
-      pole.material
-    );
+    const thickness = Number.isFinite(pole.thickness) && pole.thickness > 0 ? pole.thickness.toFixed(1) : "?";
+    const topText = `\u00d8${format(pole.Lower_D)} \u00d7 t${thickness}`;
+    const saved = engine.dimensionSegments;
+    const obstacles = getLeaderObstacles(engine);
+    let placement;
+    // Keep the usual right-side position if clear, then move down. Mirror to
+    // the left only when no right-side position clears the reserved arm leaders.
+    for (const side of [1, -1]) {
+      for (const fraction of [0.5, 0.35, 0.2, 0.65, 0.8]) {
+        const target = { x: side * pole.Lower_D / 2, y: currentY + pole.height * fraction };
+        const elbow = { x: target.x + side * leaderOffset, y: target.y + leaderOffset };
+        engine.dimensionSegments = allowLeaderContact(obstacles, engine.toSvg(target.x, target.y));
+        const fitted = engine.fitObjectLeader(target, elbow, topText, 0, pole.material, "center", {
+          minFactor: 1, textClearance: 4
+        });
+        const margin = 7 / engine.scale;
+        if (!engine.lastLeaderFitBlocked && fitted.y + margin <= currentY + pole.height &&
+            fitted.y - margin >= currentY) {
+          placement = { target, elbow: fitted };
+          break;
+        }
+      }
+      if (placement) break;
+    }
+    engine.dimensionSegments = saved;
+    if (placement) engine.drawLeader(placement.target, placement.elbow, topText, pole.material);
+    else engine.unplacedStraightPoleLeader = true;
     currentY += pole.height;
   }
 }
@@ -1744,14 +1755,14 @@ function render(model) {
   // Height columns are placed afterwards so they can clear the fitted leader.
   drawDimensionArm(engine, model);
   engine.collectDimensions = false;
-  // Pole leaders (Straight only).
-  drawPoleLeader(engine, model);
   drawLeaderPoleTaperThickness(engine, model);
   if (model.directObjectCount > 0) drawObjectLeader(engine, model);
   drawOpeningBoxLeader(engine, model);
   // Reserve arm specifications before height columns and diameter callouts.
   // A short single arm otherwise loses its only usable quadrant to those lines.
   drawArmSpecificationLeader(engine, model);
+  // Straight pole callouts can move down or mirror to clear the arm reservation.
+  drawPoleLeader(engine, model);
   engine.collectDimensions = true;
   drawObjectHeightDimensions(engine, model, heightLabels);
   engine.collectDimensions = false;
@@ -1769,6 +1780,7 @@ function render(model) {
   status.textContent = `Poles: ${model.poleCount} | Max diameter: ${format(MaxDiameter)} mm | Total height: ${format(totalHeight)} mm. Drawing scale ≈ 1 : ${format(1 / scale)}.`;
   if (engine.unplacedArmSpecificationLeader) status.textContent += " Arm specification leader: no clear position available.";
   if (engine.unplacedTaperThicknessLeader) status.textContent += " Taper thickness leader: no clear position available.";
+  if (engine.unplacedStraightPoleLeader) status.textContent += " Straight pole leader: no clear position available.";
   if (engine.unplacedArmLightingLeaders) {
     status.textContent += ` ${engine.unplacedArmLightingLeaders} arm lighting leader(s): no clear position available.`;
   }
