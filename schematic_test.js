@@ -1767,6 +1767,8 @@ function render(model) {
 }
 
 function updateDrawing() {
+  // Optional editor bridge can protect a manual revision without changing geometry.
+  if (!window.dispatchEvent(new CustomEvent("schematic:before-generate", { cancelable: true }))) return;
   // Capture the latest values from the getters for this render.
   const model = {
     poleCount: parameters.poleCount,
@@ -1800,6 +1802,7 @@ function updateDrawing() {
   }
 
   render(model);
+  window.dispatchEvent(new CustomEvent("schematic:generated"));
 }
 
 // Coalesce typing and the following change event into one redraw.
@@ -1810,5 +1813,9 @@ function scheduleDrawing() {
 }
 form.addEventListener("input", scheduleDrawing);
 form.addEventListener("change", scheduleDrawing);
+window.addEventListener("schematic:regenerate", () => {
+  clearTimeout(drawingTimer);
+  updateDrawing();
+});
 
 updateDrawing();

@@ -4,8 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Pole Specifications</title>
+    <link rel="icon" href="data:," />
     <link rel="stylesheet" href="schematic_test.css" />
     <script src="schematic_test.js" defer></script>
+    <link rel="stylesheet" href="schematic_editor.css" />
+    <script type="module" src="schematic_editor.js"></script>
   </head>
   <body>
     <section class="controls" id="parameters" aria-label="Pole parameters">
@@ -446,12 +449,32 @@
       </section>
     </section>
     <main class="workspace">
+      <div id="editor-toolbar" class="editor-toolbar" hidden>
+        <button id="edit-schematic" type="button" disabled>Edit Schematic</button>
+        <button id="regenerate-schematic" type="button">Generate Ulang</button>
+        <button id="save-project" type="button" disabled>Save Project</button>
+        <button id="open-project" type="button">Open Project</button>
+        <button id="download-svg" type="button" disabled>Download SVG</button>
+        <input id="project-file" type="file" accept=".json,application/json" hidden />
+        <span id="editor-status" role="status" aria-live="polite"></span>
+      </div>
       <p id="status" role="status" aria-live="polite"></p>
       <svg id="drawing" class="canvas-a4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 210 297" role="img" aria-labelledby="drawing-title drawing-description">
         <title id="drawing-title">Halaman A4 skematik tiang</title>
         <desc id="drawing-description">Skematik tiang yang diperbarui berdasarkan input diameter, tinggi, dan jumlah pole.</desc>
         <g id="drawing-content"></g>
       </svg>
+      <div id="edited-preview" hidden></div>
     </main>
+    <dialog id="schematic-editor-dialog" aria-labelledby="editor-dialog-title">
+      <header class="editor-dialog-header">
+        <strong id="editor-dialog-title">Edit Schematic</strong>
+        <span>Edit teks/garis secara manual. Menggeser grup juga menggeser panahnya.</span>
+        <button id="apply-schematic" type="button" disabled>Apply to Schematic</button>
+        <button id="cancel-schematic" type="button">Cancel</button>
+      </header>
+      <p id="editor-loading" role="status">Memuat editor...</p>
+      <iframe id="svg-editor-frame" title="SVG-Edit schematic editor"></iframe>
+    </dialog>
   </body>
 </html>

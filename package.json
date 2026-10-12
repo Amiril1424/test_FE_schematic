@@ -1,0 +1,9 @@
+{
+  "name": "pole-schematic",
+  "private": true,
+  "scripts": {
+    "start": "node scripts/serve.cjs",
+    "test:editor": "node tests/editor-roundtrip.cjs && node tests/editor-regression.cjs"
+  },
+  "devDependencies": { "@playwright/test": "1.61.1" }
+}
