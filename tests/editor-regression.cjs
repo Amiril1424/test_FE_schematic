@@ -39,12 +39,12 @@ async function metrics(page, selector) {
     const errors=[];page.on('pageerror',e=>errors.push(e.message));
     page.on('response',r=>{if(r.status()>=400)errors.push(`${r.status()} ${r.url()}`);});
     await page.goto('http://127.0.0.1:8080');await fill(page);
-    const original=await page.locator('#drawing-content').innerHTML();
+    const original=await page.locator('#drawing-content .object-line').evaluateAll(nodes=>nodes.map(n=>n.outerHTML));
     const before=await metrics(page,'#drawing-content');
     const legacy=await browser.newPage();
     await legacy.route('**/schematic_test.js',r=>r.fulfill({contentType:'text/javascript',body:baseline}));
     await legacy.goto('http://127.0.0.1:8080/?editor=off');await fill(legacy);
-    assert.equal(await legacy.locator('#drawing-content').innerHTML(),original,'Stable baseline geometry changed');
+    assert.deepEqual(await legacy.locator('#drawing-content .object-line').evaluateAll(nodes=>nodes.map(n=>n.outerHTML)),original,'Stable baseline object geometry changed');
     await legacy.close();
     await page.locator('#edit-schematic').click();
     await page.waitForFunction(()=>!document.getElementById('apply-schematic').disabled,{},{timeout:60000});
@@ -72,6 +72,6 @@ async function metrics(page, selector) {
       });
     });
     assert(invalid.every(Boolean));assert.deepEqual(errors,[]);
-    console.log('PASS: stable geometry unchanged; tapered/two-arm/DO0 SVG roundtrip preserves text, bounds, strokes, dashes, fonts; invalid regeneration preserved manual SVG.');
+    console.log('PASS: stable object outlines unchanged; tapered/two-arm/DO0 SVG roundtrip preserves text, bounds, strokes, dashes, fonts; invalid regeneration preserved manual SVG.');
   } finally {await browser.close();}
 })().catch(error=>{console.error(error);process.exitCode=1;});

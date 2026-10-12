@@ -65,3 +65,12 @@ git worktree add ../schematic-stable schematic-before-svg-editor
 ```
 
 No reset, deletion or overwriting is needed. Keep the stable tag and review the integration branch before merging into main.
+
+## Leader layout follow-up
+
+The drawing engine now reserves arm-length dimensions before taper thickness leaders.
+Taper placement checks object outlines, existing text and dimension geometry with 4 paper mm text clearance, retaining the normal 12 mm diagonal components. It prefers the tapered segment and can use a matching connected straight segment when the taper is too short. An obstructed fallback is no longer drawn; status reports when no clear placement exists.
+Arm specification leaders retain their shorter preferred routes and can try 28/36 mm rises when those routes are blocked.
+
+Run `npm.cmd run test:leaders` with the server running. Cases cover the reported 6000 + 1997 mm pole, right 1000 mm arm at height 5001, left 180 mm arm at height 6001, two opposite 180 mm arms, and a short taper with connected straight segment. Final rendered obstacles are checked after all annotations exist; screenshots are saved in test-results.
+The editor baseline comparison now checks object outlines, since annotation placement is intentionally changed. Other crowded combinations can still report an unplaced leader and may need manual finishing in SVG-Edit.

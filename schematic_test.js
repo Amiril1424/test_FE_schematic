@@ -1441,7 +1441,7 @@ function drawArmSpecificationGroup(engine, model) {
         const target={x:direction*(start.x+(end.x-start.x)*fraction),y:start.y+(end.y-start.y)*fraction};
         engine.dimensionSegments=allowLeaderContact(obstacles,engine.toSvg(target.x,target.y));
         // Try the original diagonal first, then steeper routes past short-arm dimensions.
-        for(const rise of [12,16,20]) {
+        for(const rise of [12,16,20,28,36]) {
           for(const slope of [1,2,4,8]) {
             for(const up of [1,-1]) {
               const elbow={x:target.x+direction*rise/slope/engine.scale,y:target.y+up*rise/engine.scale};
@@ -1574,8 +1574,9 @@ function drawLeaderPoleTaperThickness(engine, model) {
     const topText = `${description}(t${thicknessText})`;
     const bottomText = `(JIS G3444 ${pole.material})`;
     const leaderOffset = 12 / engine.scale;
+    const savedSegments = engine.dimensionSegments;
+    const obstacles = getLeaderObstacles(engine);
     let placement;
-    let fallback;
     // Prefer tapered segments; only then try other members of this connected group.
     const candidates = [
       ...group.members.filter(({ pole }) => pole.type === "tapered"),
@@ -1587,10 +1588,11 @@ function drawLeaderPoleTaperThickness(engine, model) {
         const diameter = segment.Lower_D + (segment.Upper_D - segment.Lower_D) * fraction;
         const target = { x: diameter / 2, y: bottomY + segment.height * fraction };
         const elbow = { x: target.x + leaderOffset, y: target.y + leaderOffset };
-        const fitted = engine.fitObjectLeader(target, elbow, topText, 0, bottomText, "left");
+        engine.dimensionSegments = allowLeaderContact(obstacles, engine.toSvg(target.x, target.y));
+        const fitted = engine.fitObjectLeader(target, elbow, topText, 0, bottomText, "left", {
+          minFactor: 1, textClearance: 4
+        });
         const candidate = { target, elbow: fitted };
-        // Keep a fallback on Pole 1 of the group if no segment has sufficient space.
-        if (!fallback || (index === group.members[0].index && fraction === 0.5)) fallback = candidate;
         // Reserve space for both text rows plus clearance, in paper mm.
         const textMargin = 7 / engine.scale;
         const fitsSegment = fitted.y + textMargin <= bottomY + segment.height &&
@@ -1602,8 +1604,9 @@ function drawLeaderPoleTaperThickness(engine, model) {
       }
       if (placement) break;
     }
-    placement ??= fallback;
-    engine.drawLeader(placement.target, placement.elbow, topText, bottomText, 0, "left");
+    engine.dimensionSegments = savedSegments;
+    if (placement) engine.drawLeader(placement.target, placement.elbow, topText, bottomText, 0, "left");
+    else engine.unplacedTaperThicknessLeader = true;
   }
 }
 
@@ -1737,6 +1740,9 @@ function render(model) {
   drawTaperCenterDimensions(engine, model, heightLabels);
   drawPoleDimensions(engine, model, heightLabels);
   drawOpeningBoxDimensions(engine, model);
+  // Reserve the arm length lines/text before choosing a taper leader position.
+  // Height columns are placed afterwards so they can clear the fitted leader.
+  drawDimensionArm(engine, model);
   engine.collectDimensions = false;
   // Pole leaders (Straight only).
   drawPoleLeader(engine, model);
@@ -1745,7 +1751,6 @@ function render(model) {
   drawOpeningBoxLeader(engine, model);
   engine.collectDimensions = true;
   drawObjectHeightDimensions(engine, model, heightLabels);
-  drawDimensionArm(engine, model);
   engine.collectDimensions = false;
   // Pick diameter quadrants only after measuring the final leader positions.
   engine.deferDiameterDimensions = false;
@@ -1761,6 +1766,7 @@ function render(model) {
   // engine.drawText(16, 269, `Scale ≈ 1 : ${format(1 / scale)} | Length ${format(model.Upper_D)} mm × Height ${format(model.height)} mm`, "drawing-text note");
   status.textContent = `Poles: ${model.poleCount} | Max diameter: ${format(MaxDiameter)} mm | Total height: ${format(totalHeight)} mm. Drawing scale ≈ 1 : ${format(1 / scale)}.`;
   if (engine.unplacedArmSpecificationLeader) status.textContent += " Arm specification leader: no clear position available.";
+  if (engine.unplacedTaperThicknessLeader) status.textContent += " Taper thickness leader: no clear position available.";
   if (engine.unplacedArmLightingLeaders) {
     status.textContent += ` ${engine.unplacedArmLightingLeaders} arm lighting leader(s): no clear position available.`;
   }
