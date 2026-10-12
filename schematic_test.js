@@ -1749,6 +1749,9 @@ function render(model) {
   drawLeaderPoleTaperThickness(engine, model);
   if (model.directObjectCount > 0) drawObjectLeader(engine, model);
   drawOpeningBoxLeader(engine, model);
+  // Reserve arm specifications before height columns and diameter callouts.
+  // A short single arm otherwise loses its only usable quadrant to those lines.
+  drawArmSpecificationLeader(engine, model);
   engine.collectDimensions = true;
   drawObjectHeightDimensions(engine, model, heightLabels);
   engine.collectDimensions = false;
@@ -1760,7 +1763,6 @@ function render(model) {
   }
   engine.pendingDiameterDimensions = [];
   engine.collectDimensions = false;
-  drawArmSpecificationLeader(engine, model);
   drawArmLightingLeader(engine, model);
 
   // engine.drawText(16, 269, `Scale ≈ 1 : ${format(1 / scale)} | Length ${format(model.Upper_D)} mm × Height ${format(model.height)} mm`, "drawing-text note");

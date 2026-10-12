@@ -21,6 +21,8 @@ fs.mkdirSync('test-results',{recursive:true});
     });
     for(const scenario of [
       {name:'right',angle:0,length:1000},
+      {name:'single-short-top',angle:0,length:180,height:10000,threePoles:true},
+      {name:'double-short-top',angle:0,length:180,height:10000,threePoles:true,count:2},
       {name:'left',angle:180,length:180,height:6001},
       {name:'opposite-short',angle:0,length:180,count:2},
       {name:'short-taper',angle:0,length:1000,shortTaper:true}
@@ -32,8 +34,11 @@ fs.mkdirSync('test-results',{recursive:true});
           'pole-2-type':'straight','pole-2-diameter':165,'pole-2-height':1997,'pole-2-thickness':4};
         if(s.shortTaper) Object.assign(values,{'pole-1-type':'straight','pole-1-diameter':85,'pole-1-height':6000,
           'pole-2-type':'tapered','pole-2-upper-diameter':85,'pole-2-height':400});
+        if(s.threePoles) Object.assign(values,{'pole-count':3,'pole-1-type':'straight','pole-1-diameter':75,
+          'pole-1-height':2500,'pole-2-type':'tapered','pole-2-diameter':175,'pole-2-upper-diameter':75,
+          'pole-2-height':6000,'pole-3-type':'straight','pole-3-diameter':175,'pole-3-height':1600,'pole-3-thickness':4});
         for(let i=1;i<=(s.count||1);i++) Object.assign(values,{
-          [`arm-${i}-diameter`]:76.3,[`arm-${i}-thickness`]:3,[`arm-${i}-height`]:s.height||5001,
+          [`arm-${i}-diameter`]:s.threePoles?60.5:76.3,[`arm-${i}-thickness`]:s.threePoles?3.2:3,[`arm-${i}-height`]:s.height||5001,
           [`arm-${i}-length`]:s.length,[`arm-${i}-fix-angle`]:i===2?180:s.angle,[`arm-${i}-vertical-angle`]:5});
         for(const [id,v] of Object.entries(values)) document.getElementById(id).value=v;
         window.dispatchEvent(new CustomEvent('schematic:regenerate'));
