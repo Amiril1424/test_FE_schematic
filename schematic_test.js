@@ -1,4 +1,4 @@
-"use strict";       //Make javascript code more strict and avoid some silent errors.(should declare variables, no duplicate params, etc.)
+"use strict"; //Make javascript code more strict and avoid some silent errors.(should declare variables, no duplicate params, etc.)
 
 // Model: actual engineering dimensions in mm, independent of the screen.
 // Put the size of shape into parameters object.
@@ -26,13 +26,17 @@ const parameters = {
         thickness: document.getElementById(`${prefix}-thickness`).valueAsNumber,
         height: document.getElementById(`${prefix}-height`).valueAsNumber,
         length: document.getElementById(`${prefix}-length`).valueAsNumber,
-        fixAngle: document.getElementById(`${prefix}-fix-angle`).value === ""
-          ? 0 : document.getElementById(`${prefix}-fix-angle`).valueAsNumber,
-        verticalAngle: document.getElementById(`${prefix}-vertical-angle`).value === ""
-          ? 0 : document.getElementById(`${prefix}-vertical-angle`).valueAsNumber,
+        fixAngle:
+          document.getElementById(`${prefix}-fix-angle`).value === ""
+            ? 0
+            : document.getElementById(`${prefix}-fix-angle`).valueAsNumber,
+        verticalAngle:
+          document.getElementById(`${prefix}-vertical-angle`).value === ""
+            ? 0
+            : document.getElementById(`${prefix}-vertical-angle`).valueAsNumber,
         // Temporary set adapter spec is like below, but can be changed in the future.
         adapterLength: 120,
-        adapterDiameter: 60.5
+        adapterDiameter: 60.5,
       };
     });
   },
@@ -47,7 +51,7 @@ const parameters = {
       return {
         name: document.getElementById(`${prefix}-name`).value,
         height: document.getElementById(`${prefix}-height`).valueAsNumber,
-        quantity: document.getElementById(`${prefix}-quantity`).valueAsNumber
+        quantity: document.getElementById(`${prefix}-quantity`).valueAsNumber,
       };
     });
   },
@@ -65,8 +69,10 @@ const parameters = {
         diameter: document.getElementById(`${prefix}-diameter`).valueAsNumber,
         height: document.getElementById(`${prefix}-height`).valueAsNumber,
         span: document.getElementById(`${prefix}-span`).valueAsNumber,
-        fixAngle: document.getElementById(`${prefix}-fix-angle`).value === ""
-          ? 0 : document.getElementById(`${prefix}-fix-angle`).valueAsNumber
+        fixAngle:
+          document.getElementById(`${prefix}-fix-angle`).value === ""
+            ? 0
+            : document.getElementById(`${prefix}-fix-angle`).valueAsNumber,
       };
     });
   },
@@ -75,10 +81,13 @@ const parameters = {
     return Array.from({ length: this.poleCount }, (_, index) => {
       const prefix = `pole-${index + 1}`;
       const type = document.getElementById(`${prefix}-type`).value;
-      const lowerDiameter = document.getElementById(`${prefix}-diameter`).valueAsNumber;
-      const upperDiameter = type === "tapered"
-        ? document.getElementById(`${prefix}-upper-diameter`).valueAsNumber
-        : lowerDiameter;
+      const lowerDiameter = document.getElementById(
+        `${prefix}-diameter`,
+      ).valueAsNumber;
+      const upperDiameter =
+        type === "tapered"
+          ? document.getElementById(`${prefix}-upper-diameter`).valueAsNumber
+          : lowerDiameter;
 
       return {
         name: document.getElementById(`${prefix}-name`).value,
@@ -89,15 +98,11 @@ const parameters = {
         Lower_D: lowerDiameter,
         thickness: document.getElementById(`${prefix}-thickness`).valueAsNumber,
         height: document.getElementById(`${prefix}-height`).valueAsNumber,
-        quantity: document.getElementById(`${prefix}-quantity`).valueAsNumber
+        quantity: document.getElementById(`${prefix}-quantity`).valueAsNumber,
       };
     });
-  }
+  },
 };
-
-
-
-
 
 // NS = Name Space for SVG elements.
 const NS = "http://www.w3.org/2000/svg";
@@ -108,9 +113,9 @@ const form = document.getElementById("parameters");
 // paragraf untuk menampilkan ukuran, skala, atau pesan kesalahan.
 const status = document.getElementById("status");
 // ungsi format() menyiapkan angka untuk ditampilkan.
-const format = (value) => Number(value.toFixed(2)).toLocaleString("en-US", {useGrouping: false});
+const format = (value) =>
+  Number(value.toFixed(2)).toLocaleString("en-US", { useGrouping: false });
 // useGrouping:false agar tidak ada pemisah ribuan, misal 1000 menjadi 1000 bukan 1,000. Dalam gambar engineering tidak ada pemisah ribuan
-
 
 // Small drawing engine. SVG viewBox units represent mm on the A4 paper.
 // class mengelompokkan data dan fungsi yang saling berkaitan.
@@ -132,7 +137,7 @@ class DrawingEngine {
     this.deferDiameterDimensions = false;
     this.collectDimensions = false;
   }
-  
+
   // ///////////METHOD in Class DrawingEngine////////////////////////////////
   // Engineering: +Y up. SVG: +Y down. Only this function converts coordinates.
   // origin = { x: 100, y: 200 };
@@ -142,10 +147,10 @@ class DrawingEngine {
   // xMm dan yMm adalah parameter method toSvg().
   // x dan y adalah property dari object yang dikembalikan/direturn oleh toSvg().
   toSvg(xMm, yMm) {
-    return { 
-      x: this.origin.x + xMm * this.scale, 
+    return {
+      x: this.origin.x + xMm * this.scale,
       y: this.origin.y - yMm * this.scale,
-     };
+    };
   }
 
   // Method element: Method umum untuk membuat elemen SVG.
@@ -157,7 +162,8 @@ class DrawingEngine {
     // Contoh jika tag === "line": -->  <line></line>
     const node = document.createElementNS(NS, tag);
     // Mengubah setiap properti objek attributes menjadi atribut SVG.
-    for (const [key, value] of Object.entries(attributes)) node.setAttribute(key, value);
+    for (const [key, value] of Object.entries(attributes))
+      node.setAttribute(key, value);
     // Contoh objek:
     // {
     //   x1: 10,
@@ -185,49 +191,79 @@ class DrawingEngine {
   paperLine(a, b, className = "dimension-line") {
     if (this.collectDimensions) this.dimensionSegments.push({ a, b });
     // Nilai default className adalah "dimension-line" jika tidak diberikan argumen ketiga.
-    return this.element("line", { x1: a.x, y1: a.y, x2: b.x, y2: b.y, class: className });
+    return this.element("line", {
+      x1: a.x,
+      y1: a.y,
+      x2: b.x,
+      y2: b.y,
+      class: className,
+    });
   }
 
   drawLine(a, b, className = "object-line") {
-    return this.paperLine(this.toSvg(a.x, a.y), this.toSvg(b.x, b.y), className);
+    return this.paperLine(
+      this.toSvg(a.x, a.y),
+      this.toSvg(b.x, b.y),
+      className,
+    );
   }
 
   drawPolyline(points, className = "object-line") {
     return this.element("polyline", {
-      points: points.map(({ x, y }) => { const p = this.toSvg(x, y); return `${p.x},${p.y}`; }).join(" "),
+      points: points
+        .map(({ x, y }) => {
+          const p = this.toSvg(x, y);
+          return `${p.x},${p.y}`;
+        })
+        .join(" "),
       class: className,
     });
   }
 
   drawText(x, y, text, className = "drawing-text", attributes = {}) {
-    return this.element("text", { x, y, class: className, ...attributes }, text);
+    return this.element(
+      "text",
+      { x, y, class: className, ...attributes },
+      text,
+    );
   }
 
   // Leader target and elbow use engineering mm (Y up).
   // Shelf width and text spacing use paper mm, so annotations stay readable.
-  drawLeader(target, elbow, topText, bottomText = "", shelfWidth = 0, textAlign = "center") {
+  drawLeader(
+    target,
+    elbow,
+    topText,
+    bottomText = "",
+    shelfWidth = 0,
+    textAlign = "center",
+  ) {
     const tip = this.toSvg(target.x, target.y);
     const bend = this.toSvg(elbow.x, elbow.y);
     const direction = bend.x >= tip.x ? 1 : -1;
 
     const top = this.drawText(bend.x, bend.y - 2, topText, "drawing-text", {
-      "text-anchor": "middle"
+      "text-anchor": "middle",
     });
-    const bottom = bottomText === "" ? null : this.drawText(
-      bend.x, bend.y + 5, bottomText, "drawing-text", { "text-anchor": "middle" }
-    );
+    const bottom =
+      bottomText === ""
+        ? null
+        : this.drawText(bend.x, bend.y + 5, bottomText, "drawing-text", {
+            "text-anchor": "middle",
+          });
 
     // Fit the longest label with 1 paper mm of padding at each end.
     const textPadding = 1;
     const width = Math.max(
       shelfWidth,
       top.getComputedTextLength() + textPadding * 2,
-      bottom ? bottom.getComputedTextLength() + textPadding * 2 : 0
+      bottom ? bottom.getComputedTextLength() + textPadding * 2 : 0,
     );
     const end = { x: bend.x + direction * width, y: bend.y };
-    const textX = textAlign === "left"
-      ? Math.min(bend.x, end.x) + textPadding
-      : (bend.x + end.x) / 2;
+    const textX =
+      textAlign === "left"
+        ? Math.min(bend.x, end.x) + textPadding
+        : (bend.x + end.x) / 2;
     const textAnchor = textAlign === "left" ? "start" : "middle";
     top.setAttribute("x", textX);
     top.setAttribute("text-anchor", textAnchor);
@@ -237,12 +273,22 @@ class DrawingEngine {
     }
 
     // Reserve the actual text and leader geometry for diameter placement.
-    const boxes = [top, bottom].filter(Boolean).map(node => {
+    const boxes = [top, bottom].filter(Boolean).map((node) => {
       const box = node.getBBox();
-      return { left: box.x - 1.5, right: box.x + box.width + 1.5,
-        top: box.y - 1.5, bottom: box.y + box.height + 1.5 };
+      return {
+        left: box.x - 1.5,
+        right: box.x + box.width + 1.5,
+        top: box.y - 1.5,
+        bottom: box.y + box.height + 1.5,
+      };
     });
-    this.leaderAnnotations.push({ boxes, segments: [[tip, bend], [bend, end]] });
+    this.leaderAnnotations.push({
+      boxes,
+      segments: [
+        [tip, bend],
+        [bend, end],
+      ],
+    });
 
     this.paperLine(tip, bend, "dimension-line");
     this.paperLine(bend, end, "dimension-line");
@@ -250,16 +296,22 @@ class DrawingEngine {
   }
 
   // Straight pole: diameter × thickness above the shelf, material below.
-  drawStraightPoleLeader(target, elbow, diameter, thickness, material, shelfWidth = 0) {
-    const thicknessText = Number.isFinite(thickness) && thickness > 0
-      ? thickness.toFixed(1)
-      : "?";
+  drawStraightPoleLeader(
+    target,
+    elbow,
+    diameter,
+    thickness,
+    material,
+    shelfWidth = 0,
+  ) {
+    const thicknessText =
+      Number.isFinite(thickness) && thickness > 0 ? thickness.toFixed(1) : "?";
     this.drawLeader(
       target,
       elbow,
       `Ø${format(diameter)} × t${thicknessText}`,
       material,
-      shelfWidth
+      shelfWidth,
     );
   }
 
@@ -271,7 +323,15 @@ class DrawingEngine {
 
   // Shorten the diagonal without changing its angle. Test the diagonal,
   // horizontal shelf and text against dimension lines already drawn.
-  fitObjectLeader(target, elbow, name, shelfWidth, bottomText = "", textAlign = "center", options = {}) {
+  fitObjectLeader(
+    target,
+    elbow,
+    name,
+    shelfWidth,
+    bottomText = "",
+    textAlign = "center",
+    options = {},
+  ) {
     this.lastLeaderFitBlocked = false;
     if (this.dimensionSegments.length === 0) return elbow;
     const tip = this.toSvg(target.x, target.y);
@@ -291,17 +351,36 @@ class DrawingEngine {
     const lineClearance = 0.3; // Thin lines need less clearance than text.
 
     const pointDistance = (p, a, b) => {
-      const dx = b.x - a.x, dy = b.y - a.y;
+      const dx = b.x - a.x,
+        dy = b.y - a.y;
       const lengthSquared = dx * dx + dy * dy;
-      const t = lengthSquared === 0 ? 0 : Math.max(0, Math.min(1,
-        ((p.x - a.x) * dx + (p.y - a.y) * dy) / lengthSquared));
+      const t =
+        lengthSquared === 0
+          ? 0
+          : Math.max(
+              0,
+              Math.min(
+                1,
+                ((p.x - a.x) * dx + (p.y - a.y) * dy) / lengthSquared,
+              ),
+            );
       return Math.hypot(p.x - a.x - t * dx, p.y - a.y - t * dy);
     };
     const segmentsNear = (a, b, c, d, clearance) => {
-      const cross = (p, q, r) => (q.x - p.x) * (r.y - p.y) - (q.y - p.y) * (r.x - p.x);
-      const crosses = cross(a, b, c) * cross(a, b, d) < 0 && cross(c, d, a) * cross(c, d, b) < 0;
-      return crosses || Math.min(pointDistance(a, c, d), pointDistance(b, c, d),
-        pointDistance(c, a, b), pointDistance(d, a, b)) < clearance;
+      const cross = (p, q, r) =>
+        (q.x - p.x) * (r.y - p.y) - (q.y - p.y) * (r.x - p.x);
+      const crosses =
+        cross(a, b, c) * cross(a, b, d) < 0 &&
+        cross(c, d, a) * cross(c, d, b) < 0;
+      return (
+        crosses ||
+        Math.min(
+          pointDistance(a, c, d),
+          pointDistance(b, c, d),
+          pointDistance(c, a, b),
+          pointDistance(d, a, b),
+        ) < clearance
+      );
     };
 
     // Prefer the original length. Reduce both X and Y together if obstructed.
@@ -310,34 +389,67 @@ class DrawingEngine {
     for (let step = 0; step <= 16; step++) {
       const factor = 1 - step * 0.05;
       if (factor < minFactor - 1e-9) break;
-      const candidate = { x: tip.x + (bend.x - tip.x) * factor, y: tip.y + (bend.y - tip.y) * factor };
+      const candidate = {
+        x: tip.x + (bend.x - tip.x) * factor,
+        y: tip.y + (bend.y - tip.y) * factor,
+      };
       const end = { x: candidate.x + side * width, y: candidate.y };
-      const textX = textAlign === "left" ? Math.min(candidate.x, end.x) + 1 : (candidate.x + end.x) / 2;
+      const textX =
+        textAlign === "left"
+          ? Math.min(candidate.x, end.x) + 1
+          : (candidate.x + end.x) / 2;
       const widest = Math.max(textWidth, lowerWidth);
       const left = textAlign === "left" ? textX : textX - widest / 2;
       const right = left + widest;
       const top = candidate.y - 2 + textBox.y;
-      const bottom = lowerBox ? candidate.y + 5 + lowerBox.y + lowerBox.height : top + textBox.height;
-      const corners = [{x:left,y:top}, {x:right,y:top}, {x:right,y:bottom}, {x:left,y:bottom}];
-      const inside = p => p.x >= left && p.x <= right && p.y >= top && p.y <= bottom;
+      const bottom = lowerBox
+        ? candidate.y + 5 + lowerBox.y + lowerBox.height
+        : top + textBox.height;
+      const corners = [
+        { x: left, y: top },
+        { x: right, y: top },
+        { x: right, y: bottom },
+        { x: left, y: bottom },
+      ];
+      const inside = (p) =>
+        p.x >= left && p.x <= right && p.y >= top && p.y <= bottom;
       const candidateBounds = {
-        left: Math.min(tip.x,candidate.x,end.x,left)-textClearance,
-        right: Math.max(tip.x,candidate.x,end.x,right)+textClearance,
-        top: Math.min(tip.y,candidate.y,top)-textClearance,
-        bottom: Math.max(tip.y,candidate.y,bottom)+textClearance
+        left: Math.min(tip.x, candidate.x, end.x, left) - textClearance,
+        right: Math.max(tip.x, candidate.x, end.x, right) + textClearance,
+        top: Math.min(tip.y, candidate.y, top) - textClearance,
+        bottom: Math.max(tip.y, candidate.y, bottom) + textClearance,
       };
-      const blocked = this.dimensionSegments.some(({ a, b }) => {
-        // Cheap bounding-box rejection before the detailed intersection tests.
-        if(Math.max(a.x,b.x)<candidateBounds.left || Math.min(a.x,b.x)>candidateBounds.right ||
-           Math.max(a.y,b.y)<candidateBounds.top || Math.min(a.y,b.y)>candidateBounds.bottom) return false;
-        return segmentsNear(tip, candidate, a, b, lineClearance) ||
-        segmentsNear(candidate, end, a, b, lineClearance) ||
-        inside(a) || inside(b) || corners.some((p, i) =>
-          segmentsNear(p, corners[(i + 1) % 4], a, b, textClearance));
-      }) || this.diameterAnnotations.some(({box}) =>
-        left - textClearance < box.right && right + textClearance > box.left &&
-        top - textClearance < box.bottom && bottom + textClearance > box.top
-      ) || left < 5 || right > 205 || top < 5 || bottom > 292;
+      const blocked =
+        this.dimensionSegments.some(({ a, b }) => {
+          // Cheap bounding-box rejection before the detailed intersection tests.
+          if (
+            Math.max(a.x, b.x) < candidateBounds.left ||
+            Math.min(a.x, b.x) > candidateBounds.right ||
+            Math.max(a.y, b.y) < candidateBounds.top ||
+            Math.min(a.y, b.y) > candidateBounds.bottom
+          )
+            return false;
+          return (
+            segmentsNear(tip, candidate, a, b, lineClearance) ||
+            segmentsNear(candidate, end, a, b, lineClearance) ||
+            inside(a) ||
+            inside(b) ||
+            corners.some((p, i) =>
+              segmentsNear(p, corners[(i + 1) % 4], a, b, textClearance),
+            )
+          );
+        }) ||
+        this.diameterAnnotations.some(
+          ({ box }) =>
+            left - textClearance < box.right &&
+            right + textClearance > box.left &&
+            top - textClearance < box.bottom &&
+            bottom + textClearance > box.top,
+        ) ||
+        left < 5 ||
+        right > 205 ||
+        top < 5 ||
+        bottom > 292;
       if (!blocked) {
         chosenFactor = factor;
         this.lastLeaderFitBlocked = false;
@@ -346,7 +458,7 @@ class DrawingEngine {
     }
     return {
       x: target.x + (elbow.x - target.x) * chosenFactor,
-      y: target.y + (elbow.y - target.y) * chosenFactor
+      y: target.y + (elbow.y - target.y) * chosenFactor,
     };
   }
 
@@ -356,8 +468,14 @@ class DrawingEngine {
     const halfWidth = 0.65;
     for (const side of [-1, 1]) {
       this.paperLine(tip, {
-        x: tip.x + Math.cos(direction) * length - Math.sin(direction) * halfWidth * side,
-        y: tip.y + Math.sin(direction) * length + Math.cos(direction) * halfWidth * side,
+        x:
+          tip.x +
+          Math.cos(direction) * length -
+          Math.sin(direction) * halfWidth * side,
+        y:
+          tip.y +
+          Math.sin(direction) * length +
+          Math.cos(direction) * halfWidth * side,
       });
     }
   }
@@ -367,8 +485,12 @@ class DrawingEngine {
     const start = this.toSvg(a.x, a.y);
     const end = this.toSvg(b.x, b.y);
     const horizontal = orientation === "horizontal";
-    const p = horizontal ? { x: start.x, y: start.y + offset } : { x: start.x + offset, y: start.y };
-    const q = horizontal ? { x: end.x, y: end.y + offset } : { x: end.x + offset, y: end.y };
+    const p = horizontal
+      ? { x: start.x, y: start.y + offset }
+      : { x: start.x + offset, y: start.y };
+    const q = horizontal
+      ? { x: end.x, y: end.y + offset }
+      : { x: end.x + offset, y: end.y };
     // Optional fixed dimension position in paper units, independent of object edges.
     if (dimensionPosition !== undefined) {
       if (horizontal) {
@@ -379,10 +501,19 @@ class DrawingEngine {
     }
     const sign = Math.sign(offset);
     const objectGap = 30 * this.scale; // 30 mm engineering, converted to paper mm.
-    for (const [anchor, target] of [[start, p], [end, q]]) {
+    for (const [anchor, target] of [
+      [start, p],
+      [end, q],
+    ]) {
       this.paperLine(
-        { x: anchor.x + (horizontal ? 0 : sign * objectGap), y: anchor.y + (horizontal ? sign * objectGap : 0) },
-        { x: target.x + (horizontal ? 0 : sign * 2), y: target.y + (horizontal ? sign * 2 : 0) },
+        {
+          x: anchor.x + (horizontal ? 0 : sign * objectGap),
+          y: anchor.y + (horizontal ? sign * objectGap : 0),
+        },
+        {
+          x: target.x + (horizontal ? 0 : sign * 2),
+          y: target.y + (horizontal ? sign * 2 : 0),
+        },
       );
     }
     this.paperLine(p, q);
@@ -409,19 +540,33 @@ class DrawingEngine {
     const label = this.drawText(0, 0, `Ø${format(diameter)}`);
     const textWidth = label.getComputedTextLength();
     const textBox = label.getBBox();
-    const distance = Math.max(rise, diameter * this.scale / 2 + 8);
+    const distance = Math.max(rise, (diameter * this.scale) / 2 + 8);
     const preferredUp = direction === "up";
     // Try the requested quadrant, then the other side, then opposite Y.
-    const choices = [[1, preferredUp], [-1, preferredUp], [-1, !preferredUp], [1, !preferredUp]];
-    const intersects = (a, b) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+    const choices = [
+      [1, preferredUp],
+      [-1, preferredUp],
+      [-1, !preferredUp],
+      [1, !preferredUp],
+    ];
+    const intersects = (a, b) =>
+      a.left < b.right &&
+      a.right > b.left &&
+      a.top < b.bottom &&
+      a.bottom > b.top;
     const lineHitsBox = (a, b, box) => {
-      let lo = 0, hi = 1;
-      for (const [axis, min, max] of [["x", box.left, box.right], ["y", box.top, box.bottom]]) {
+      let lo = 0,
+        hi = 1;
+      for (const [axis, min, max] of [
+        ["x", box.left, box.right],
+        ["y", box.top, box.bottom],
+      ]) {
         const delta = b[axis] - a[axis];
         if (Math.abs(delta) < 1e-9) {
           if (a[axis] < min || a[axis] > max) return false;
         } else {
-          const t1 = (min - a[axis]) / delta, t2 = (max - a[axis]) / delta;
+          const t1 = (min - a[axis]) / delta,
+            t2 = (max - a[axis]) / delta;
           lo = Math.max(lo, Math.min(t1, t2));
           hi = Math.min(hi, Math.max(t1, t2));
           if (lo > hi) return false;
@@ -431,30 +576,57 @@ class DrawingEngine {
     };
     let selected;
     for (const [side, up] of choices) {
-      const dx = side * distance, dy = up ? -distance : distance;
+      const dx = side * distance,
+        dy = up ? -distance : distance;
       const p = { x: left.x + dx, y: left.y + dy };
       const q = { x: right.x + dx, y: right.y + dy };
       const outside = !up && textWidth + 2 > q.x - p.x;
       const textX = outside ? (side > 0 ? q.x + 4 : p.x - 4) : (p.x + q.x) / 2;
       const anchor = outside ? (side > 0 ? "start" : "end") : "middle";
-      const textLeft = anchor === "start" ? textX : anchor === "end" ? textX - textWidth : textX - textWidth / 2;
-      const box = { left: textLeft - 1.5, right: textLeft + textWidth + 1.5,
-        top: p.y - 2 + textBox.y - 1.5, bottom: p.y - 2 + textBox.y + textBox.height + 1.5 };
-      const segments = [[left, p], [right, q], [{x:p.x-5,y:p.y}, {x:q.x+5,y:q.y}]];
-      let score = this.diameterAnnotations.filter(previous =>
-        intersects(box, previous.box) || previous.segments.some(([a,b]) => lineHitsBox(a,b,box)) ||
-        segments.some(([a,b]) => lineHitsBox(a,b,previous.box))).length;
+      const textLeft =
+        anchor === "start"
+          ? textX
+          : anchor === "end"
+            ? textX - textWidth
+            : textX - textWidth / 2;
+      const box = {
+        left: textLeft - 1.5,
+        right: textLeft + textWidth + 1.5,
+        top: p.y - 2 + textBox.y - 1.5,
+        bottom: p.y - 2 + textBox.y + textBox.height + 1.5,
+      };
+      const segments = [
+        [left, p],
+        [right, q],
+        [
+          { x: p.x - 5, y: p.y },
+          { x: q.x + 5, y: q.y },
+        ],
+      ];
+      let score = this.diameterAnnotations.filter(
+        (previous) =>
+          intersects(box, previous.box) ||
+          previous.segments.some(([a, b]) => lineHitsBox(a, b, box)) ||
+          segments.some(([a, b]) => lineHitsBox(a, b, previous.box)),
+      ).length;
       // Avoid the existing height dimensions too, particularly on the left.
-      score += this.dimensionSegments.filter(({a,b}) => lineHitsBox(a,b,box)).length;
+      score += this.dimensionSegments.filter(({ a, b }) =>
+        lineHitsBox(a, b, box),
+      ).length;
       // Leaders are already placed: reject text overlap and extension lines
       // passing through either of their two text rows.
-      score += this.leaderAnnotations.filter(leader =>
-        leader.boxes.some(area => intersects(box, area) ||
-          segments.some(([a,b]) => lineHitsBox(a,b,area))) ||
-        leader.segments.some(([a,b]) => lineHitsBox(a,b,box))
+      score += this.leaderAnnotations.filter(
+        (leader) =>
+          leader.boxes.some(
+            (area) =>
+              intersects(box, area) ||
+              segments.some(([a, b]) => lineHitsBox(a, b, area)),
+          ) || leader.segments.some(([a, b]) => lineHitsBox(a, b, box)),
       ).length;
-      if (box.left < 5 || box.right > 205 || box.top < 5 || box.bottom > 292) score += 100;
-      if (!selected || score < selected.score) selected = { dx, dy, textX, anchor, box, segments, score };
+      if (box.left < 5 || box.right > 205 || box.top < 5 || box.bottom > 292)
+        score += 100;
+      if (!selected || score < selected.score)
+        selected = { dx, dy, textX, anchor, box, segments, score };
       if (score === 0) break;
     }
     // Equal horizontal/vertical displacement guarantees a 45-degree angle.
@@ -467,10 +639,13 @@ class DrawingEngine {
     const q = { x: right.x + dx, y: right.y + dy };
 
     // Parallel diagonal extension lines with a 30 engineering mm gap.
-    for (const [anchor, end] of [[left, p], [right, q]]) {
+    for (const [anchor, end] of [
+      [left, p],
+      [right, q],
+    ]) {
       this.paperLine(
         { x: anchor.x + unitX * gap, y: anchor.y + unitY * gap },
-        { x: end.x + unitX * 1.5, y: end.y + unitY * 1.5 }
+        { x: end.x + unitX * 1.5, y: end.y + unitY * 1.5 },
       );
     }
 
@@ -485,17 +660,17 @@ class DrawingEngine {
   }
 
   drawArc(start, end, radius, sweep = 1, className = "object-line") {
-  const p1 = this.toSvg(start.x, start.y);
-  const p2 = this.toSvg(end.x, end.y);
+    const p1 = this.toSvg(start.x, start.y);
+    const p2 = this.toSvg(end.x, end.y);
 
-  const r = radius * this.scale;
+    const r = radius * this.scale;
 
     return this.element("path", {
       d: `M ${p1.x} ${p1.y}
           A ${r} ${r} 0 0 ${sweep} ${p2.x} ${p2.y}`,
-      class: className
+      class: className,
     });
-  } 
+  }
 }
 
 // Draw Objects here:
@@ -511,10 +686,10 @@ function drawPole(engine, model) {
 
     engine.drawPolyline([
       { x: -Low_D / 2, y: currentY },
-      { x:  Low_D / 2, y: currentY },
-      { x:  Up_D / 2, y: currentY + h },
+      { x: Low_D / 2, y: currentY },
+      { x: Up_D / 2, y: currentY + h },
       { x: -Up_D / 2, y: currentY + h },
-      { x: -Low_D / 2, y: currentY }
+      { x: -Low_D / 2, y: currentY },
     ]);
     currentY += h;
   }
@@ -523,8 +698,13 @@ function drawPole(engine, model) {
 // Taper ratio = (diameter bawah - diameter atas) / panjang total.
 // Gunakan satuan yang sama untuk semua ukuran, misalnya mm.
 function calculateTaperRatio(lowerDiameter, upperDiameter, totalLength) {
-  if (![lowerDiameter, upperDiameter, totalLength].every(Number.isFinite) || totalLength <= 0) {
-    throw new RangeError("Dimensions must be finite numbers and totalLength must be greater than zero.");
+  if (
+    ![lowerDiameter, upperDiameter, totalLength].every(Number.isFinite) ||
+    totalLength <= 0
+  ) {
+    throw new RangeError(
+      "Dimensions must be finite numbers and totalLength must be greater than zero.",
+    );
   }
   return (lowerDiameter - upperDiameter) / totalLength;
 }
@@ -535,16 +715,20 @@ function getArmDirection(fixAngle = 0) {
   return fixAngle > 90 && fixAngle <= 270 ? -1 : 1;
 }
 
-
 // Heights are measured from G.L.; Arm Length is the horizontal projection.
 // A connection must fit entirely within one pole segment.
 function getArmConnection(poles, arm) {
   if (getArmDirection(arm.fixAngle) === null) return null;
   const angle = arm.verticalAngle ?? 0;
-  if (![arm.height, arm.diameter, arm.length, angle].every(Number.isFinite) ||
-      arm.diameter <= 0 || arm.length <= 0 || Math.abs(angle) >= 90) return null;
+  if (
+    ![arm.height, arm.diameter, arm.length, angle].every(Number.isFinite) ||
+    arm.diameter <= 0 ||
+    arm.length <= 0 ||
+    Math.abs(angle) >= 90
+  )
+    return null;
 
-  const radians = angle * Math.PI / 180;
+  const radians = (angle * Math.PI) / 180;
   const cos = Math.cos(radians);
   const sin = Math.sin(radians);
   const actualLength = arm.length / cos;
@@ -565,18 +749,33 @@ function getArmConnection(poles, arm) {
     // Intersect each arm side with x = (Lower_D - ratio * (y - baseY)) / 2.
     const denominator = 2 * cos + ratio * sin;
     if (denominator > 1e-9) {
-      const intersect = sign => {
+      const intersect = (sign) => {
         const x0 = sign * offset.x;
         const y0 = startCenter.y + sign * offset.y;
-        const distance = (pole.Lower_D - ratio * (y0 - baseY) - 2 * x0) / denominator;
+        const distance =
+          (pole.Lower_D - ratio * (y0 - baseY) - 2 * x0) / denominator;
         return { x: x0 + distance * cos, y: y0 + distance * sin, distance };
       };
       const bottom = intersect(-1);
       const top = intersect(1);
-      const fits = [bottom, top].every(point =>
-        point.y >= baseY && point.y <= topPoleY &&
-        point.distance >= 0 && point.distance < actualLength);
-      if (fits) return { bottom, top, endBottom, endTop, actualLength, startCenter, endCenter, poles };
+      const fits = [bottom, top].every(
+        (point) =>
+          point.y >= baseY &&
+          point.y <= topPoleY &&
+          point.distance >= 0 &&
+          point.distance < actualLength,
+      );
+      if (fits)
+        return {
+          bottom,
+          top,
+          endBottom,
+          endTop,
+          actualLength,
+          startCenter,
+          endCenter,
+          poles,
+        };
     }
     baseY = topPoleY;
   }
@@ -591,8 +790,14 @@ function drawArm(engine, model) {
     const direction = getArmDirection(arm.fixAngle);
     const p = engine.toSvg(direction * bottom.x, bottom.y);
     const q = engine.toSvg(direction * top.x, top.y);
-    const endBottom = engine.toSvg(direction * connection.endBottom.x, connection.endBottom.y);
-    const endTop = engine.toSvg(direction * connection.endTop.x, connection.endTop.y);
+    const endBottom = engine.toSvg(
+      direction * connection.endBottom.x,
+      connection.endBottom.y,
+    );
+    const endTop = engine.toSvg(
+      direction * connection.endTop.x,
+      connection.endTop.y,
+    );
     // Keep a valid circular arc even when an inclined connection is wider.
     const chord = Math.hypot(top.x - bottom.x, top.y - bottom.y);
     const radius = Math.max(0.678 * arm.diameter, chord / 2) * engine.scale;
@@ -605,7 +810,7 @@ function drawArm(engine, model) {
           L ${endTop.x} ${endTop.y}
           L ${q.x} ${q.y}
           A ${radius} ${radius} 0 0 ${sweep} ${p.x} ${p.y} Z`,
-      class: "object-line arm-face"
+      class: "object-line arm-face",
     });
     drawArmRib(engine, arm, connection, direction);
     drawArmAdapter(engine, arm, connection, direction);
@@ -616,7 +821,7 @@ function drawArm(engine, model) {
 // Make Adapter for lighting arm, for example make adapter 120
 function drawArmAdapter(engine, arm, connection, direction) {
   const angle = arm.verticalAngle ?? 0;
-  const radians = angle * Math.PI / 180;
+  const radians = (angle * Math.PI) / 180;
   const cos = Math.cos(radians);
   const sin = Math.sin(radians);
   const axis = { x: cos, y: sin };
@@ -625,10 +830,22 @@ function drawArmAdapter(engine, arm, connection, direction) {
   const halfWidth = (arm.adapterDiameter ?? 60.5) / 2;
 
   const startCenter = connection.endCenter;
-  const startTop = { x: startCenter.x + normal.x * halfWidth, y: startCenter.y + normal.y * halfWidth };
-  const startBottom = { x: startCenter.x - normal.x * halfWidth, y: startCenter.y - normal.y * halfWidth };
-  const endTop = { x: startTop.x + axis.x * boxlength, y: startTop.y + axis.y * boxlength };
-  const endBottom = { x: startBottom.x + axis.x * boxlength, y: startBottom.y + axis.y * boxlength };
+  const startTop = {
+    x: startCenter.x + normal.x * halfWidth,
+    y: startCenter.y + normal.y * halfWidth,
+  };
+  const startBottom = {
+    x: startCenter.x - normal.x * halfWidth,
+    y: startCenter.y - normal.y * halfWidth,
+  };
+  const endTop = {
+    x: startTop.x + axis.x * boxlength,
+    y: startTop.y + axis.y * boxlength,
+  };
+  const endBottom = {
+    x: startBottom.x + axis.x * boxlength,
+    y: startBottom.y + axis.y * boxlength,
+  };
 
   const p1 = engine.toSvg(direction * startBottom.x, startBottom.y);
   const p2 = engine.toSvg(direction * startTop.x, startTop.y);
@@ -641,10 +858,9 @@ function drawArmAdapter(engine, arm, connection, direction) {
         L ${p3.x} ${p3.y}
         L ${p4.x} ${p4.y}
         Z`,
-    class: "object-line adapter-face"
-  }); 
+    class: "object-line adapter-face",
+  });
 }
-
 
 // Rib below one arm: 100 mm along the arm, 100 mm vertically down the pole.
 function drawArmRib(engine, arm, connection, direction) {
@@ -652,11 +868,13 @@ function drawArmRib(engine, arm, connection, direction) {
   const ribHeight = 100;
   const endFlat = 10;
   const reliefRadius = 25;
-  const radians = (arm.verticalAngle ?? 0) * Math.PI / 180;
-  const cos = Math.cos(radians), sin = Math.sin(radians);
+  const radians = ((arm.verticalAngle ?? 0) * Math.PI) / 180;
+  const cos = Math.cos(radians),
+    sin = Math.sin(radians);
   const start = connection.bottom;
   const lowerY = start.y - ribHeight;
-  if (lowerY < 0 || connection.actualLength - start.distance < ribLength) return;
+  if (lowerY < 0 || connection.actualLength - start.distance < ribLength)
+    return;
 
   // Follow the actual pole profile, including a joint below the connection.
   let baseY = 0;
@@ -664,7 +882,8 @@ function drawArmRib(engine, arm, connection, direction) {
   for (const pole of [...connection.poles].reverse()) {
     const topY = baseY + pole.height;
     const ratio = calculateTaperRatio(pole.Lower_D, pole.Upper_D, pole.height);
-    const low = Math.max(lowerY, baseY), high = Math.min(start.y, topY);
+    const low = Math.max(lowerY, baseY),
+      high = Math.min(start.y, topY);
     if (low < high) {
       for (const y of [low, high]) {
         poleEdge.push({ x: (pole.Lower_D - (y - baseY) * ratio) / 2, y });
@@ -675,27 +894,41 @@ function drawArmRib(engine, arm, connection, direction) {
   if (!poleEdge.length) return;
   const lower = poleEdge[0];
   const tip = { x: start.x + ribLength * cos, y: start.y + ribLength * sin };
-  const armRelief = { x: start.x + reliefRadius * cos, y: start.y + reliefRadius * sin };
+  const armRelief = {
+    x: start.x + reliefRadius * cos,
+    y: start.y + reliefRadius * sin,
+  };
   // Locate the R25 endpoint on the pole edge nearest the connection.
   const beforeStart = poleEdge[poleEdge.length - 2];
-  const edgeLength = Math.hypot(beforeStart.x - start.x, beforeStart.y - start.y);
+  const edgeLength = Math.hypot(
+    beforeStart.x - start.x,
+    beforeStart.y - start.y,
+  );
   // Avoid extending a circular relief beyond a nearby step in the pole.
   if (edgeLength < reliefRadius) return;
   const poleRelief = {
-    x: start.x + (beforeStart.x - start.x) * reliefRadius / edgeLength,
-    y: start.y + (beforeStart.y - start.y) * reliefRadius / edgeLength
+    x: start.x + ((beforeStart.x - start.x) * reliefRadius) / edgeLength,
+    y: start.y + ((beforeStart.y - start.y) * reliefRadius) / edgeLength,
   };
-  const points = [armRelief, tip,
+  const points = [
+    armRelief,
+    tip,
     { x: tip.x + endFlat * sin, y: tip.y - endFlat * cos },
     { x: lower.x + endFlat, y: lower.y },
-    ...poleEdge.slice(0, -1), poleRelief];
-  const svg = points.map(point => engine.toSvg(direction * point.x, point.y));
+    ...poleEdge.slice(0, -1),
+    poleRelief,
+  ];
+  const svg = points.map((point) => engine.toSvg(direction * point.x, point.y));
   const radius = reliefRadius * engine.scale;
   engine.element("path", {
-    d: `M ${svg[0].x} ${svg[0].y} ` +
-      svg.slice(1).map(point => `L ${point.x} ${point.y}`).join(" ") +
+    d:
+      `M ${svg[0].x} ${svg[0].y} ` +
+      svg
+        .slice(1)
+        .map((point) => `L ${point.x} ${point.y}`)
+        .join(" ") +
       ` A ${radius} ${radius} 0 0 ${direction === 1 ? 0 : 1} ${svg[0].x} ${svg[0].y} Z`,
-    class: "object-line"
+    class: "object-line",
   });
 }
 
@@ -704,16 +937,19 @@ const LIGHTING_WIDTH = 600;
 const LIGHTING_HEIGHT = 200;
 
 function getArmLightingPoints(arm, connection, direction) {
-  const radians = (arm.verticalAngle ?? 0) * Math.PI / 180;
+  const radians = ((arm.verticalAngle ?? 0) * Math.PI) / 180;
   const cos = Math.cos(radians);
   const sin = Math.sin(radians);
   // Start at the arm end so the adapter enters the lighting housing.
-  return [[0, -LIGHTING_HEIGHT / 2], [LIGHTING_WIDTH, -LIGHTING_HEIGHT / 2],
-    [LIGHTING_WIDTH, LIGHTING_HEIGHT / 2], [0, LIGHTING_HEIGHT / 2]]
-    .map(([along, across]) => ({
-      x: direction * (connection.endCenter.x + along * cos - across * sin),
-      y: connection.endCenter.y + along * sin + across * cos
-    }));
+  return [
+    [0, -LIGHTING_HEIGHT / 2],
+    [LIGHTING_WIDTH, -LIGHTING_HEIGHT / 2],
+    [LIGHTING_WIDTH, LIGHTING_HEIGHT / 2],
+    [0, LIGHTING_HEIGHT / 2],
+  ].map(([along, across]) => ({
+    x: direction * (connection.endCenter.x + along * cos - across * sin),
+    y: connection.endCenter.y + along * sin + across * cos,
+  }));
 }
 
 function drawArmLighting(engine, arm, connection, direction) {
@@ -733,129 +969,180 @@ function drawBaseplate(engine, model) {
   const RibThick = 12; // Example thickness for the rib part
   const ScallopRadius = 25; // Example radius for the scallop part
 
-  engine.drawPolyline([
-    // Base part
-    { x: -baseplateWidth / 2, y: 0 },
-    { x: baseplateWidth / 2, y: 0 },
-    { x: baseplateWidth / 2, y: baseplateThick },
-    { x: -baseplateWidth / 2, y: baseplateThick },
-    { x: -baseplateWidth / 2, y: 0 }
+  engine.drawPolyline(
+    [
+      // Base part
+      { x: -baseplateWidth / 2, y: 0 },
+      { x: baseplateWidth / 2, y: 0 },
+      { x: baseplateWidth / 2, y: baseplateThick },
+      { x: -baseplateWidth / 2, y: baseplateThick },
+      { x: -baseplateWidth / 2, y: 0 },
+    ],
+    "object-line baseplate-face",
+  );
 
-  ], "object-line baseplate-face");
-
-    // Rib Part Left Side
+  // Rib Part Left Side
   engine.drawPolyline([
-    { x: -baseplateWidth / 2 + 10, y: baseplateThick  },
+    { x: -baseplateWidth / 2 + 10, y: baseplateThick },
     { x: -baseplateWidth / 2 + 10, y: baseplateThick + 20 },
     { x: -Low_D / 2 - 10, y: baseplateThick + RibHeight },
-    { x: -Low_D / 2 , y: baseplateThick + RibHeight },
+    { x: -Low_D / 2, y: baseplateThick + RibHeight },
   ]);
 
-    // Rib Part Right Side
+  // Rib Part Right Side
   engine.drawPolyline([
-    { x: baseplateWidth / 2 - 10, y: baseplateThick  },
+    { x: baseplateWidth / 2 - 10, y: baseplateThick },
     { x: baseplateWidth / 2 - 10, y: baseplateThick + 20 },
     { x: Low_D / 2 + 10, y: baseplateThick + RibHeight },
-    { x: Low_D / 2 , y: baseplateThick + RibHeight },
+    { x: Low_D / 2, y: baseplateThick + RibHeight },
   ]);
 
-    // Rib Part Center
+  // Rib Part Center
   engine.drawPolyline([
-    { x: -RibThick / 2 , y: baseplateThick  },
+    { x: -RibThick / 2, y: baseplateThick },
     { x: -RibThick / 2, y: baseplateThick + RibHeight },
     { x: RibThick / 2, y: baseplateThick + RibHeight },
-    { x: RibThick / 2 , y: baseplateThick  },
+    { x: RibThick / 2, y: baseplateThick },
   ]);
 
   // Scallop left side
   engine.drawArc(
     { x: -Low_D / 2 - ScallopRadius, y: baseplateThick },
-    { x: -Low_D / 2 , y: baseplateThick + ScallopRadius },
+    { x: -Low_D / 2, y: baseplateThick + ScallopRadius },
     ScallopRadius,
-    1
+    1,
   );
 
   // Scallop right side
   engine.drawArc(
     { x: Low_D / 2 + ScallopRadius, y: baseplateThick },
-    { x: Low_D / 2 , y: baseplateThick + ScallopRadius },
+    { x: Low_D / 2, y: baseplateThick + ScallopRadius },
     ScallopRadius,
-    0
+    0,
   );
-
 }
 
 // Center point Tapered Pole
 function centerPointTaperedPole(lowerDiameter, upperDiameter, totalLength) {
   if (
-    ![lowerDiameter, upperDiameter, totalLength].every(Number.isFinite) || 
+    ![lowerDiameter, upperDiameter, totalLength].every(Number.isFinite) ||
     lowerDiameter <= 0 ||
     upperDiameter <= 0 ||
-    totalLength <= 0) {
-    throw new RangeError("Dimensions must be finite numbers and totalLength must be greater than zero.");
+    totalLength <= 0
+  ) {
+    throw new RangeError(
+      "Dimensions must be finite numbers and totalLength must be greater than zero.",
+    );
   }
   return Math.round(
-    (totalLength/3) * 
-    (lowerDiameter + 2 * upperDiameter) / 
-    (lowerDiameter + upperDiameter)
-    );
+    ((totalLength / 3) * (lowerDiameter + 2 * upperDiameter)) /
+      (lowerDiameter + upperDiameter),
+  );
 }
 
 // Draw Opening Part Box type
 function drawOpeningBox(engine, model) {
   const Low_D = model.poles[model.poles.length - 1].Lower_D; // The last pole is at the bottom, next to the opening.
   const Upper_D = model.poles[model.poles.length - 1].Upper_D; // The last pole is at the bottom, next to the opening.
-  const TaperRatio = calculateTaperRatio(Low_D, Upper_D, model.poles[model.poles.length - 1].height);
-  
+  const TaperRatio = calculateTaperRatio(
+    Low_D,
+    Upper_D,
+    model.poles[model.poles.length - 1].height,
+  );
+
   const heightOpeningAtCenter = 750; // Example height for the opening from GL to center of opening
   const diameterPoleAtOpening = Low_D - heightOpeningAtCenter * TaperRatio; // The last pole is at the bottom, next to the opening.
   const openingCutHeight = 600; // Example height for the opening cut
 
   // Draw Box1
-  engine.drawPolyline([
-    { x: -diameterPoleAtOpening/2-22.7+61.2, y: heightOpeningAtCenter-openingCutHeight/2-40 },
-    { x: -diameterPoleAtOpening/2-22.7+20, y: heightOpeningAtCenter-openingCutHeight/2-40 },
-    { x: -diameterPoleAtOpening/2-22.7+20, y: heightOpeningAtCenter+openingCutHeight/2+40 },
-    { x: -diameterPoleAtOpening/2-22.7+61.2, y: heightOpeningAtCenter+openingCutHeight/2+40 },
-    { x: -diameterPoleAtOpening/2-22.7+61.2, y: heightOpeningAtCenter-openingCutHeight/2-40 },
-  ], "object-line baseplate-face");
+  engine.drawPolyline(
+    [
+      {
+        x: -diameterPoleAtOpening / 2 - 22.7 + 61.2,
+        y: heightOpeningAtCenter - openingCutHeight / 2 - 40,
+      },
+      {
+        x: -diameterPoleAtOpening / 2 - 22.7 + 20,
+        y: heightOpeningAtCenter - openingCutHeight / 2 - 40,
+      },
+      {
+        x: -diameterPoleAtOpening / 2 - 22.7 + 20,
+        y: heightOpeningAtCenter + openingCutHeight / 2 + 40,
+      },
+      {
+        x: -diameterPoleAtOpening / 2 - 22.7 + 61.2,
+        y: heightOpeningAtCenter + openingCutHeight / 2 + 40,
+      },
+      {
+        x: -diameterPoleAtOpening / 2 - 22.7 + 61.2,
+        y: heightOpeningAtCenter - openingCutHeight / 2 - 40,
+      },
+    ],
+    "object-line baseplate-face",
+  );
 
   // Draw Box2
   engine.drawPolyline([
-    { x: -diameterPoleAtOpening/2-22.7+20, y: heightOpeningAtCenter-openingCutHeight/2-40 },
-    { x: -diameterPoleAtOpening/2-22.7, y: heightOpeningAtCenter-openingCutHeight/2-40 },
-    { x: -diameterPoleAtOpening/2-22.7, y: heightOpeningAtCenter+openingCutHeight/2+40-2 },
-    { x: -diameterPoleAtOpening/2-22.7+20, y: heightOpeningAtCenter+openingCutHeight/2+40-2},
-    { x: -diameterPoleAtOpening/2-22.7+20, y: heightOpeningAtCenter-openingCutHeight/2-40 },
-
+    {
+      x: -diameterPoleAtOpening / 2 - 22.7 + 20,
+      y: heightOpeningAtCenter - openingCutHeight / 2 - 40,
+    },
+    {
+      x: -diameterPoleAtOpening / 2 - 22.7,
+      y: heightOpeningAtCenter - openingCutHeight / 2 - 40,
+    },
+    {
+      x: -diameterPoleAtOpening / 2 - 22.7,
+      y: heightOpeningAtCenter + openingCutHeight / 2 + 40 - 2,
+    },
+    {
+      x: -diameterPoleAtOpening / 2 - 22.7 + 20,
+      y: heightOpeningAtCenter + openingCutHeight / 2 + 40 - 2,
+    },
+    {
+      x: -diameterPoleAtOpening / 2 - 22.7 + 20,
+      y: heightOpeningAtCenter - openingCutHeight / 2 - 40,
+    },
   ]);
 
   // Draw Cover up plate
   engine.drawPolyline([
-    { x: -diameterPoleAtOpening/2-22.7+61.2, y: heightOpeningAtCenter+openingCutHeight/2+40 },
-    { x: -diameterPoleAtOpening/2-22.7-3.8, y: heightOpeningAtCenter+openingCutHeight/2+40 },
-    { x: -diameterPoleAtOpening/2-22.7-3.8, y: heightOpeningAtCenter+openingCutHeight/2+40+4.5 },
-    { x: -diameterPoleAtOpening/2-22.7+61.2, y: heightOpeningAtCenter+openingCutHeight/2+40+4.5 },
-    { x: -diameterPoleAtOpening/2-22.7+61.2, y: heightOpeningAtCenter+openingCutHeight/2+40 },
-
+    {
+      x: -diameterPoleAtOpening / 2 - 22.7 + 61.2,
+      y: heightOpeningAtCenter + openingCutHeight / 2 + 40,
+    },
+    {
+      x: -diameterPoleAtOpening / 2 - 22.7 - 3.8,
+      y: heightOpeningAtCenter + openingCutHeight / 2 + 40,
+    },
+    {
+      x: -diameterPoleAtOpening / 2 - 22.7 - 3.8,
+      y: heightOpeningAtCenter + openingCutHeight / 2 + 40 + 4.5,
+    },
+    {
+      x: -diameterPoleAtOpening / 2 - 22.7 + 61.2,
+      y: heightOpeningAtCenter + openingCutHeight / 2 + 40 + 4.5,
+    },
+    {
+      x: -diameterPoleAtOpening / 2 - 22.7 + 61.2,
+      y: heightOpeningAtCenter + openingCutHeight / 2 + 40,
+    },
   ]);
-
 }
 
 // Draw Adapter at top of pole
 function drawAdapterTop(engine, model) {
   const totalHeight = model.poles.reduce((sum, pole) => sum + pole.height, 0);
   const lengthAdapter = model.directObjectCount > 0 ? 120 : 0; // Top adapter only for Direct Object
-  const diameterAdapter = 60.5 // Example diameter for the adapter
+  const diameterAdapter = 60.5; // Example diameter for the adapter
 
   // Draw Adapter
   engine.drawPolyline([
-    { x: -diameterAdapter/2, y: totalHeight },
-    { x: diameterAdapter/2, y: totalHeight },
-    { x: diameterAdapter/2, y: totalHeight + lengthAdapter },
-    { x: -diameterAdapter/2, y: totalHeight + lengthAdapter },
-    { x: -diameterAdapter/2, y: totalHeight }
-
+    { x: -diameterAdapter / 2, y: totalHeight },
+    { x: diameterAdapter / 2, y: totalHeight },
+    { x: diameterAdapter / 2, y: totalHeight + lengthAdapter },
+    { x: -diameterAdapter / 2, y: totalHeight + lengthAdapter },
+    { x: -diameterAdapter / 2, y: totalHeight },
   ]);
 }
 
@@ -866,14 +1153,16 @@ function drawLightingSchematic(engine, model) {
   const lightingWidth = LIGHTING_WIDTH; // Example width for the lighting schematic
 
   // Draw Lighting Schematic
-  engine.drawPolyline([
-    { x: -100, y: totalHeight },
-    { x: lightingWidth - 100 , y: totalHeight},
-    { x: lightingWidth - 100 , y: totalHeight + lightingHeight},
-    { x: -100, y: totalHeight + lightingHeight},
-    { x: -100, y: totalHeight }
-
-  ], "lighting-line");
+  engine.drawPolyline(
+    [
+      { x: -100, y: totalHeight },
+      { x: lightingWidth - 100, y: totalHeight },
+      { x: lightingWidth - 100, y: totalHeight + lightingHeight },
+      { x: -100, y: totalHeight + lightingHeight },
+      { x: -100, y: totalHeight },
+    ],
+    "lighting-line",
+  );
 }
 
 // --------------Center Line Function-----------------
@@ -887,40 +1176,52 @@ function drawPoleCenterLine(engine, model) {
   engine.drawLine(
     { x: 0, y: -extension },
     { x: 0, y: totalHeight + extension + lengthAdapter },
-    "center-line"
+    "center-line",
   );
 }
 
 // Draw Centerline for Opening Box
 function drawOpeningBoxCenterLine(engine, model) {
-  const extension = 100; // Engineering mm; drawLine() 
+  const extension = 100; // Engineering mm; drawLine()
   const Low_D = model.poles[model.poles.length - 1].Lower_D;
   const Upper_D = model.poles[model.poles.length - 1].Upper_D; // The last pole is at the bottom, next to the opening.
-  const TaperRatio = calculateTaperRatio(Low_D, Upper_D, model.poles[model.poles.length - 1].height);
-  
+  const TaperRatio = calculateTaperRatio(
+    Low_D,
+    Upper_D,
+    model.poles[model.poles.length - 1].height,
+  );
+
   const heightOpeningAtCenter = 750; // Example height for the opening from GL to center of opening
   const diameterPoleAtOpening = Low_D - heightOpeningAtCenter * TaperRatio; // The last pole is at the bottom, next to the opening.
-  
+
   engine.drawLine(
-    { x: -diameterPoleAtOpening/2-22.7 - extension, y: heightOpeningAtCenter },
-    { x: diameterPoleAtOpening/2 + extension, y: heightOpeningAtCenter },
-    "center-line"
+    {
+      x: -diameterPoleAtOpening / 2 - 22.7 - extension,
+      y: heightOpeningAtCenter,
+    },
+    { x: diameterPoleAtOpening / 2 + extension, y: heightOpeningAtCenter },
+    "center-line",
   );
 }
-
 
 // Draw from the pole centerline through the arm tip, extending along its axis.
 function drawArmCenterLine(engine, model) {
   for (const arm of model.arms ?? []) {
     const connection = getArmConnection(model.poles, arm);
     if (!connection) continue;
-    const radians = (arm.verticalAngle ?? 0) * Math.PI / 180;
-    const length = connection.actualLength + (arm.adapterLength ?? 120) + CENTERLINE_EXTENSION;
+    const radians = ((arm.verticalAngle ?? 0) * Math.PI) / 180;
+    const length =
+      connection.actualLength +
+      (arm.adapterLength ?? 120) +
+      CENTERLINE_EXTENSION;
     const direction = getArmDirection(arm.fixAngle);
     engine.drawLine(
       connection.startCenter,
-      { x: direction * length * Math.cos(radians), y: connection.startCenter.y + length * Math.sin(radians) },
-      "center-line"
+      {
+        x: direction * length * Math.cos(radians),
+        y: connection.startCenter.y + length * Math.sin(radians),
+      },
+      "center-line",
     );
   }
 }
@@ -931,20 +1232,34 @@ function drawArmCenterLine(engine, model) {
 // One shared order for all object heights, independent of input type.
 function getObjectHeightOrder(model) {
   const sorted = [
-    ...(model.arms ?? []).map((object, index) => ({ type: "arm", object, index })),
-    ...(model.overHeadWire ?? []).map((object, index) => ({ type: "ohw", object, index }))
-  ].filter(({ object }) => Number.isFinite(object.height) && object.height > 0)
+    ...(model.arms ?? []).map((object, index) => ({
+      type: "arm",
+      object,
+      index,
+    })),
+    ...(model.overHeadWire ?? []).map((object, index) => ({
+      type: "ohw",
+      object,
+      index,
+    })),
+  ]
+    .filter(({ object }) => Number.isFinite(object.height) && object.height > 0)
     .sort((a, b) => b.object.height - a.object.height);
   // One dimension per elevation, even when Arm and OHW share that elevation.
   const unique = [];
   for (const item of sorted) {
     const previous = unique[unique.length - 1];
-    if (!previous || Math.abs(previous.object.height - item.object.height) > 1e-6) {
+    if (
+      !previous ||
+      Math.abs(previous.object.height - item.object.height) > 1e-6
+    ) {
       unique.push(item);
-    } else if (item.type === "arm" &&
-        (previous.type !== "arm" ||
-          getArmDirection(item.object.fixAngle) * item.object.length >
-          getArmDirection(previous.object.fixAngle) * previous.object.length)) {
+    } else if (
+      item.type === "arm" &&
+      (previous.type !== "arm" ||
+        getArmDirection(item.object.fixAngle) * item.object.length >
+          getArmDirection(previous.object.fixAngle) * previous.object.length)
+    ) {
       // Right-side dimensions use the rightmost arm tip as their shared reference.
       unique[unique.length - 1] = item;
     }
@@ -954,28 +1269,40 @@ function getObjectHeightOrder(model) {
 
 function createHeightDimensionLabels(model, useHeightPrefix = true) {
   const multiplePoles = model.poles.length > 1;
-  const labelFor = (index, value, isCenter = false) => useHeightPrefix
-    ? `H${index}${isCenter ? "'" : ""}=${format(value)}`
-    : format(value);
+  const labelFor = (index, value, isCenter = false) =>
+    useHeightPrefix
+      ? `H${index}${isCenter ? "'" : ""}=${format(value)}`
+      : format(value);
   const poles = new Map();
 
   model.poles.forEach((pole, inputIndex) => {
     const heightIndex = multiplePoles ? inputIndex + 2 : 1;
     poles.set(pole, {
       length: labelFor(heightIndex, pole.height),
-      center: pole.type === "tapered"
-        ? labelFor(heightIndex, centerPointTaperedPole(pole.Lower_D, pole.Upper_D, pole.height), true)
-        : null
+      center:
+        pole.type === "tapered"
+          ? labelFor(
+              heightIndex,
+              centerPointTaperedPole(pole.Lower_D, pole.Upper_D, pole.height),
+              true,
+            )
+          : null,
     });
   });
 
   return {
-    total: labelFor(1, model.poles.reduce((sum, pole) => sum + pole.height, 0)),
+    total: labelFor(
+      1,
+      model.poles.reduce((sum, pole) => sum + pole.height, 0),
+    ),
     poles,
     objects: getObjectHeightOrder(model).map((item, index) => ({
       ...item,
-      label: labelFor((multiplePoles ? model.poles.length + 2 : 2) + index, item.object.height)
-    }))
+      label: labelFor(
+        (multiplePoles ? model.poles.length + 2 : 2) + index,
+        item.object.height,
+      ),
+    })),
   };
 }
 
@@ -986,7 +1313,7 @@ function getGroundReference(engine) {
   return {
     left: { x: -baseplateWidth / 2 - extension, y: 0 },
     right: { x: baseplateWidth / 2 + extension, y: 0 },
-    baseplateRight: { x: baseplateWidth / 2, y: 0 }
+    baseplateRight: { x: baseplateWidth / 2, y: 0 },
   };
 }
 
@@ -1001,24 +1328,28 @@ function drawGroundReference(engine) {
   engine.drawText(left.x + 1, left.y - 2, "G.L.");
   engine.drawArrow(arrowTip, 0);
   engine.drawText(right.x, right.y - 2, "検討部", "drawing-text", {
-    "text-anchor": "end"
+    "text-anchor": "end",
   });
 }
 
 // Draw Dimension for Pole
 function drawPoleDimensions(engine, model, labels) {
-
   const poles = [...model.poles].reverse();
   let currentY = 0;
   const individualOffset = -40;
-  const totalOffset = individualOffset - 8 ; // Total dimension line is slightly further out than individual dimensions.
-  const overallMaxDiameter = Math.max(...poles.flatMap(pole => [pole.Lower_D, pole.Upper_D]));
-  const dimensionX = engine.toSvg(-overallMaxDiameter / 2, 0).x + individualOffset;
+  const totalOffset = individualOffset - 8; // Total dimension line is slightly further out than individual dimensions.
+  const overallMaxDiameter = Math.max(
+    ...poles.flatMap((pole) => [pole.Lower_D, pole.Upper_D]),
+  );
+  const dimensionX =
+    engine.toSvg(-overallMaxDiameter / 2, 0).x + individualOffset;
   // Each joint uses the outermost edge of the two adjacent pole ends.
   // Both touching dimensions must leave the same 30 mm engineering gap.
   const boundaryX = [getGroundReference(engine).left.x]; // Shared lower reference.
   for (let index = 0; index < poles.length - 1; index++) {
-    boundaryX.push(-Math.max(poles[index].Upper_D, poles[index + 1].Lower_D) / 2);
+    boundaryX.push(
+      -Math.max(poles[index].Upper_D, poles[index + 1].Lower_D) / 2,
+    );
   }
   boundaryX.push(-poles[poles.length - 1].Upper_D / 2);
 
@@ -1027,12 +1358,12 @@ function drawPoleDimensions(engine, model, labels) {
     const h = pole.height;
 
     engine.drawDimension(
-      { x: boundaryX[index], y: currentY},
-      { x: boundaryX[index + 1], y: currentY + h},
+      { x: boundaryX[index], y: currentY },
+      { x: boundaryX[index + 1], y: currentY + h },
       "vertical",
       individualOffset,
       labels?.poles.get(pole)?.length ?? format(h),
-      dimensionX
+      dimensionX,
     );
     currentY += h;
   }
@@ -1042,23 +1373,28 @@ function drawPoleDimensions(engine, model, labels) {
     const totalHeight = currentY;
 
     engine.drawDimension(
-      { x: boundaryX[0], y: 0},
-      { x: boundaryX[boundaryX.length - 1], y: totalHeight},
+      { x: boundaryX[0], y: 0 },
+      { x: boundaryX[boundaryX.length - 1], y: totalHeight },
       "vertical",
       totalOffset,
       labels?.total ?? format(totalHeight),
-      dimensionX + totalOffset - individualOffset
+      dimensionX + totalOffset - individualOffset,
     );
   }
 
   // One Tapered pole enables diameter dimensions for the entire assembly.
-  if (!poles.some(pole => pole.type === "tapered")) return;
+  if (!poles.some((pole) => pole.type === "tapered")) return;
 
   // Reversed order: bottom pole first, Pole 1 last (at the top).
-  const riseFor = pole => Math.min(12, pole.height * engine.scale / 4);
+  const riseFor = (pole) => Math.min(12, (pole.height * engine.scale) / 4);
   // Reserve the top-end position first; crowded joint labels try other quadrants.
   const topPole = poles[poles.length - 1];
-  engine.drawDiameterDimension(topPole.Upper_D, currentY, "down", riseFor(topPole));
+  engine.drawDiameterDimension(
+    topPole.Upper_D,
+    currentY,
+    "down",
+    riseFor(topPole),
+  );
   engine.drawDiameterDimension(poles[0].Lower_D, 0, "up", riseFor(poles[0]));
 
   let jointY = 0;
@@ -1068,23 +1404,43 @@ function drawPoleDimensions(engine, model, labels) {
     jointY += lowerPole.height;
 
     // Lower diameter of the upper pole: right/up (quadrant 1).
-    engine.drawDiameterDimension(upperPole.Lower_D, jointY, "up", riseFor(upperPole));
+    engine.drawDiameterDimension(
+      upperPole.Lower_D,
+      jointY,
+      "up",
+      riseFor(upperPole),
+    );
 
     // Equal joint diameters share one label; unequal ones get a second label.
     if (Math.abs(upperPole.Lower_D - lowerPole.Upper_D) > 1e-9) {
-      engine.drawDiameterDimension(lowerPole.Upper_D, jointY, "down", riseFor(lowerPole));
+      engine.drawDiameterDimension(
+        lowerPole.Upper_D,
+        jointY,
+        "down",
+        riseFor(lowerPole),
+      );
     }
   }
-
 }
 
 // Center dimensions use full-size text, moving above the span when necessary.
-function drawCenterHeightDimension(engine, start, end, dimensionX, value, boundaryLevels, occupied) {
+function drawCenterHeightDimension(
+  engine,
+  start,
+  end,
+  dimensionX,
+  value,
+  boundaryLevels,
+  occupied,
+) {
   const p = engine.toSvg(start.x, start.y);
   const q = engine.toSvg(end.x, end.y);
   const valueNode = engine.drawText(0, 0, value);
   const noteNode = engine.drawText(0, 0, "(荷重中心高さ)");
-  const textLength = Math.max(valueNode.getComputedTextLength(), noteNode.getComputedTextLength());
+  const textLength = Math.max(
+    valueNode.getComputedTextLength(),
+    noteNode.getComputedTextLength(),
+  );
   // Text sits beside the dimension line, so it need not reserve arrow length.
   // Keep it centered whenever the scaled span fits the text plus 1 mm per end.
   const textEndGap = 1; // Paper mm.
@@ -1096,35 +1452,65 @@ function drawCenterHeightDimension(engine, start, end, dimensionX, value, bounda
     anchor = "start"; // After -90 rotation, the text grows upward from this point.
     textY = q.y - 4;
     // Move the complete label above any joint or earlier center label it crosses.
-    for (let pass = 0; pass < boundaryLevels.length + occupied.length + 2; pass++) {
-      const joint = boundaryLevels.find(y => y >= textY - textLength - 2 && y <= textY + 2);
-      const previous = occupied.find(r => textY + 2 > r.top && textY - textLength - 2 < r.bottom);
+    for (
+      let pass = 0;
+      pass < boundaryLevels.length + occupied.length + 2;
+      pass++
+    ) {
+      const joint = boundaryLevels.find(
+        (y) => y >= textY - textLength - 2 && y <= textY + 2,
+      );
+      const previous = occupied.find(
+        (r) => textY + 2 > r.top && textY - textLength - 2 < r.bottom,
+      );
       if (joint === undefined && !previous) break;
-      textY = Math.min(joint === undefined ? Infinity : joint - 4, previous ? previous.top - 4 : Infinity);
+      textY = Math.min(
+        joint === undefined ? Infinity : joint - 4,
+        previous ? previous.top - 4 : Infinity,
+      );
     }
   }
-  for (const [node, x] of [[valueNode, dimensionX - 2], [noteNode, dimensionX + 4]]) {
+  for (const [node, x] of [
+    [valueNode, dimensionX - 2],
+    [noteNode, dimensionX + 4],
+  ]) {
     node.setAttribute("x", x);
     node.setAttribute("y", textY);
     node.setAttribute("text-anchor", anchor);
     node.setAttribute("transform", `rotate(-90 ${x} ${textY})`);
   }
-  occupied.push({top: outside ? textY - textLength : textY - textLength / 2,
-    bottom: outside ? textY : textY + textLength / 2});
+  occupied.push({
+    top: outside ? textY - textLength : textY - textLength / 2,
+    bottom: outside ? textY : textY + textLength / 2,
+  });
   const gap = 25 * engine.scale;
   for (const point of [p, q]) {
-    engine.paperLine({x:point.x-gap,y:point.y}, {x:dimensionX-2,y:point.y});
+    engine.paperLine(
+      { x: point.x - gap, y: point.y },
+      { x: dimensionX - 2, y: point.y },
+    );
   }
   const lineTop = outside ? textY - textLength - 2 : q.y;
-  engine.paperLine({x:dimensionX,y:outside ? p.y+3 : p.y}, {x:dimensionX,y:lineTop});
-  engine.drawArrow({x:dimensionX,y:p.y}, outside ? Math.PI/2 : -Math.PI/2);
-  engine.drawArrow({x:dimensionX,y:q.y}, outside ? -Math.PI/2 : Math.PI/2);
+  engine.paperLine(
+    { x: dimensionX, y: outside ? p.y + 3 : p.y },
+    { x: dimensionX, y: lineTop },
+  );
+  engine.drawArrow(
+    { x: dimensionX, y: p.y },
+    outside ? Math.PI / 2 : -Math.PI / 2,
+  );
+  engine.drawArrow(
+    { x: dimensionX, y: q.y },
+    outside ? -Math.PI / 2 : Math.PI / 2,
+  );
 }
 
 // Center height measured from each Tapered segment's own lower end.
 function drawTaperCenterDimensions(engine, model, labels) {
   const poles = [...model.poles].reverse(); // Bottom to top, matching drawPole().
-  const maxDiameter = Math.max(...poles.flatMap(pole => [pole.Lower_D, pole.Upper_D]));
+  const maxDiameter = Math.max(
+    ...poles.flatMap((pole) => [pole.Lower_D, pole.Upper_D]),
+  );
   const offset = -40 + 8; // One 8 paper mm column inside the pole-length dimension.
   const dimensionX = engine.toSvg(-maxDiameter / 2, 0).x + offset;
   let bottomY = 0;
@@ -1138,18 +1524,28 @@ function drawTaperCenterDimensions(engine, model, labels) {
 
   for (const [index, pole] of poles.entries()) {
     if (pole.type === "tapered") {
-      const centerHeight = centerPointTaperedPole(pole.Lower_D, pole.Upper_D, pole.height);
+      const centerHeight = centerPointTaperedPole(
+        pole.Lower_D,
+        pole.Upper_D,
+        pole.height,
+      );
       const centerY = bottomY + centerHeight;
-      const diameterAtCenter = pole.Lower_D +
-        (pole.Upper_D - pole.Lower_D) * centerHeight / pole.height;
+      const diameterAtCenter =
+        pole.Lower_D +
+        ((pole.Upper_D - pole.Lower_D) * centerHeight) / pole.height;
       // At the base, clear the baseplate; at joints, clear both touching poles.
-      const lowerX = index === 0 ? getGroundReference(engine).left.x
-        : -Math.max(pole.Lower_D, poles[index - 1].Upper_D) / 2;
+      const lowerX =
+        index === 0
+          ? getGroundReference(engine).left.x
+          : -Math.max(pole.Lower_D, poles[index - 1].Upper_D) / 2;
       drawCenterHeightDimension(
         engine,
         { x: lowerX, y: bottomY },
         { x: -diameterAtCenter / 2, y: centerY },
-        dimensionX, labels?.poles.get(pole)?.center ?? format(centerHeight), boundaryLevels, occupied
+        dimensionX,
+        labels?.poles.get(pole)?.center ?? format(centerHeight),
+        boundaryLevels,
+        occupied,
       );
     }
     bottomY += pole.height;
@@ -1164,17 +1560,20 @@ function drawOpeningBoxDimensions(engine, model) {
   const taperRatio = calculateTaperRatio(
     bottomPole.Lower_D,
     bottomPole.Upper_D,
-    bottomPole.height
+    bottomPole.height,
   );
-  const diameterPoleAtOpening = bottomPole.Lower_D - heightOpeningAtCenter * taperRatio;
+  const diameterPoleAtOpening =
+    bottomPole.Lower_D - heightOpeningAtCenter * taperRatio;
   const baseplatePoint = getGroundReference(engine).left;
   const centerlineEnd = {
     x: -diameterPoleAtOpening / 2 - 22.7 - extension,
-    y: heightOpeningAtCenter
+    y: heightOpeningAtCenter,
   };
   const individualOffset = -40; // Same reference as drawPoleDimensions().
   const dimensionSpacing = 8; // Paper mm between the pole and opening dimensions.
-  const overallMaxDiameter = Math.max(...model.poles.flatMap(pole => [pole.Lower_D, pole.Upper_D]));
+  const overallMaxDiameter = Math.max(
+    ...model.poles.flatMap((pole) => [pole.Lower_D, pole.Upper_D]),
+  );
   // Only the bottom pole determines whether its center-height column is needed.
   const column = bottomPole.type === "tapered" ? 2 : 1;
   const offset = individualOffset + dimensionSpacing * column;
@@ -1187,7 +1586,7 @@ function drawOpeningBoxDimensions(engine, model) {
     "vertical",
     offset,
     format(heightOpeningAtCenter),
-    dimensionX
+    dimensionX,
   );
 }
 
@@ -1199,13 +1598,17 @@ function drawObjectHeightDimensions(engine, model, labels) {
   if (!objects.length) return;
   const bounds = getHorizontalDrawingBounds(model);
   const ground = getGroundReference(engine);
-  const objectTop = engine.toSvg(0, Math.max(...objects.map(({ object }) => object.height))).y;
+  const objectTop = engine.toSvg(
+    0,
+    Math.max(...objects.map(({ object }) => object.height)),
+  ).y;
   const groundY = engine.toSvg(0, 0).y;
   // Leaders have priority. Reserve their actual text/shelf width before placing columns.
   let leaderRight = -Infinity;
   for (const leader of engine.leaderAnnotations) {
     for (const box of leader.boxes) {
-      if (box.bottom >= objectTop && box.top <= groundY) leaderRight = Math.max(leaderRight, box.right);
+      if (box.bottom >= objectTop && box.top <= groundY)
+        leaderRight = Math.max(leaderRight, box.right);
     }
     for (const [a, b] of leader.segments) {
       if (Math.max(a.y, b.y) >= objectTop && Math.min(a.y, b.y) <= groundY) {
@@ -1214,20 +1617,30 @@ function drawObjectHeightDimensions(engine, model, labels) {
     }
   }
   const firstColumn = Math.max(
-    Math.max(engine.toSvg(bounds.right, 0).x, engine.toSvg(ground.right.x, 0).x) + 12,
-    leaderRight + 8 // Paper mm: room for the vertical dimension text as well.
+    Math.max(
+      engine.toSvg(bounds.right, 0).x,
+      engine.toSvg(ground.right.x, 0).x,
+    ) + 12,
+    leaderRight + 8, // Paper mm: room for the vertical dimension text as well.
   );
   objects.forEach(({ object, type, label }, index) => {
     // Tallest object is outermost, so shorter dimension lines do not cross it.
     const column = firstColumn + (objects.length - 1 - index) * 8;
-    const connection = type === "arm" ? getArmConnection(model.poles, object) : null;
+    const connection =
+      type === "arm" ? getArmConnection(model.poles, object) : null;
     const upperReference = connection
-      ? { x: getArmDirection(object.fixAngle) * connection.endCenter.x, y: connection.endCenter.y }
+      ? {
+          x: getArmDirection(object.fixAngle) * connection.endCenter.x,
+          y: connection.endCenter.y,
+        }
       : { x: 0, y: object.height };
     engine.drawDimension(
       ground.right,
       upperReference,
-      "vertical", 12, label, column
+      "vertical",
+      12,
+      label,
+      column,
     );
   });
 }
@@ -1248,22 +1661,33 @@ function drawDimensionArm(engine, model) {
       group = { height: arm.height, items: [] };
       groups.push(group);
     }
-    group.items.push({ arm, connection, direction: getArmDirection(arm.fixAngle) });
+    group.items.push({
+      arm,
+      connection,
+      direction: getArmDirection(arm.fixAngle),
+    });
   }
 
   groups.forEach((group, index) => {
     // Same-height arms share both their L index and their dimension level.
-    const upperEdge = Math.max(...group.items.flatMap(({ arm, connection, direction }) => [
-      connection.startCenter.y, connection.top.y, connection.endTop.y,
-      ...getArmLightingPoints(arm, connection, direction).map(point => point.y)
-    ]));
+    const upperEdge = Math.max(
+      ...group.items.flatMap(({ arm, connection, direction }) => [
+        connection.startCenter.y,
+        connection.top.y,
+        connection.endTop.y,
+        ...getArmLightingPoints(arm, connection, direction).map(
+          (point) => point.y,
+        ),
+      ]),
+    );
     const candidateY = upperEdge + offset / engine.scale;
     const abovePole = totalHeight - candidateY <= topClearance;
     const dimensionY = abovePole
       ? Math.max(candidateY, totalHeight + abovePoleOffset / engine.scale)
       : candidateY;
     let paperY = engine.toSvg(0, dimensionY).y;
-    const oppositeArms = new Set(group.items.map(item => item.direction)).size === 2;
+    const oppositeArms =
+      new Set(group.items.map((item) => item.direction)).size === 2;
     const labels = group.items.map(({ arm }) => {
       const text = `L${index + 1}=${format(arm.length)}`;
       const probe = engine.drawText(0, 0, text);
@@ -1272,52 +1696,108 @@ function drawDimensionArm(engine, model) {
       return { text, width };
     });
     // Reserve 2.5 mm for each arrow plus 2 mm of text clearance.
-    const outside = group.items.some(({ arm }, i) =>
-      labels[i].width + 7 > arm.length * engine.scale);
+    const outside = group.items.some(
+      ({ arm }, i) => labels[i].width + 7 > arm.length * engine.scale,
+    );
     if (outside) {
-      const center = engine.toSvg(0, abovePole ? totalHeight : Math.max(...group.items.map(item => item.connection.startCenter.y)));
+      const center = engine.toSvg(
+        0,
+        abovePole
+          ? totalHeight
+          : Math.max(
+              ...group.items.map((item) => item.connection.startCenter.y),
+            ),
+      );
       const gap = 30 * engine.scale;
-      const overlaps = (a, b) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
-      const obstacles = [...occupiedArmLabels, ...engine.leaderAnnotations.flatMap(leader => [
-        ...leader.boxes,
-        ...leader.segments.map(([a, b]) => ({ left: Math.min(a.x, b.x) - 1,
-          right: Math.max(a.x, b.x) + 1, top: Math.min(a.y, b.y) - 1, bottom: Math.max(a.y, b.y) + 1 }))
-      ])];
-      const labelBoxes = y => group.items.map(({ connection, direction }, i) => {
-        const end = engine.toSvg(direction * connection.endCenter.x, connection.endCenter.y);
-        const x = end.x + direction * 4;
-        return { left: (direction === 1 ? x : x - labels[i].width) - 1.5,
-          right: (direction === 1 ? x + labels[i].width : x) + 1.5,
-          top: y - 7, bottom: y };
-      });
+      const overlaps = (a, b) =>
+        a.left < b.right &&
+        a.right > b.left &&
+        a.top < b.bottom &&
+        a.bottom > b.top;
+      const obstacles = [
+        ...occupiedArmLabels,
+        ...engine.leaderAnnotations.flatMap((leader) => [
+          ...leader.boxes,
+          ...leader.segments.map(([a, b]) => ({
+            left: Math.min(a.x, b.x) - 1,
+            right: Math.max(a.x, b.x) + 1,
+            top: Math.min(a.y, b.y) - 1,
+            bottom: Math.max(a.y, b.y) + 1,
+          })),
+        ]),
+      ];
+      const labelBoxes = (y) =>
+        group.items.map(({ connection, direction }, i) => {
+          const end = engine.toSvg(
+            direction * connection.endCenter.x,
+            connection.endCenter.y,
+          );
+          const x = end.x + direction * 4;
+          return {
+            left: (direction === 1 ? x : x - labels[i].width) - 1.5,
+            right: (direction === 1 ? x + labels[i].width : x) + 1.5,
+            top: y - 7,
+            bottom: y,
+          };
+        });
       // Raise the dimension in 8 paper mm steps until its outside labels clear leaders.
-      while (paperY > 20 && labelBoxes(paperY).some(box => obstacles.some(area => overlaps(box, area)))) {
+      while (
+        paperY > 20 &&
+        labelBoxes(paperY).some((box) =>
+          obstacles.some((area) => overlaps(box, area)),
+        )
+      ) {
         paperY -= 8;
       }
       const reserved = labelBoxes(paperY);
       occupiedArmLabels.push(...reserved);
       // Diameter placement runs later and must also avoid these labels.
       engine.leaderAnnotations.push({ boxes: reserved, segments: [] });
-      engine.paperLine({ x: center.x, y: center.y - gap }, { x: center.x, y: paperY - 2 });
+      engine.paperLine(
+        { x: center.x, y: center.y - gap },
+        { x: center.x, y: paperY - 2 },
+      );
       group.items.forEach(({ connection, direction }, i) => {
-        const end = engine.toSvg(direction * connection.endCenter.x, connection.endCenter.y);
+        const end = engine.toSvg(
+          direction * connection.endCenter.x,
+          connection.endCenter.y,
+        );
         const tip = { x: end.x, y: paperY };
         const textGap = 4; // Paper mm outside the outer arrow.
         const shelfEnd = end.x + direction * (textGap + labels[i].width + 2);
-        engine.paperLine({ x: end.x, y: end.y - gap }, { x: end.x, y: paperY - 2 });
-        engine.paperLine({ x: center.x, y: paperY }, { x: shelfEnd, y: paperY });
+        engine.paperLine(
+          { x: end.x, y: end.y - gap },
+          { x: end.x, y: paperY - 2 },
+        );
+        engine.paperLine(
+          { x: center.x, y: paperY },
+          { x: shelfEnd, y: paperY },
+        );
         // Tail points outwards; arrow tip points towards the measured span.
         engine.drawArrow(tip, direction === 1 ? 0 : Math.PI);
-        engine.drawText(end.x + direction * textGap, paperY - 2, labels[i].text,
-          "drawing-text", { "text-anchor": direction === 1 ? "start" : "end" });
+        engine.drawText(
+          end.x + direction * textGap,
+          paperY - 2,
+          labels[i].text,
+          "drawing-text",
+          { "text-anchor": direction === 1 ? "start" : "end" },
+        );
       });
       if (oppositeArms) {
-        engine.element("circle", { cx: center.x, cy: paperY, r: 0.65, fill: "#111" });
+        engine.element("circle", {
+          cx: center.x,
+          cy: paperY,
+          r: 0.65,
+          fill: "#111",
+        });
       } else {
         const direction = group.items[0].direction;
         const tail = { x: center.x - direction * 4, y: paperY };
         engine.paperLine(tail, { x: center.x, y: paperY });
-        engine.drawArrow({ x: center.x, y: paperY }, direction === 1 ? Math.PI : 0);
+        engine.drawArrow(
+          { x: center.x, y: paperY },
+          direction === 1 ? Math.PI : 0,
+        );
       }
       return;
     }
@@ -1325,7 +1805,10 @@ function drawDimensionArm(engine, model) {
       engine.drawDimension(
         { x: 0, y: abovePole ? totalHeight : connection.startCenter.y },
         { x: direction * connection.endCenter.x, y: connection.endCenter.y },
-        "horizontal", -offset, `L${index + 1}=${format(arm.length)}`, paperY
+        "horizontal",
+        -offset,
+        `L${index + 1}=${format(arm.length)}`,
+        paperY,
       );
     }
   });
@@ -1334,14 +1817,17 @@ function drawDimensionArm(engine, model) {
 function drawPoleLeader(engine, model) {
   // Applies to one Straight pole or multiple poles that are all Straight.
   // If any pole is Tapered, omit all pole leaders for now.
-  if (!model.poles.every(pole => pole.type === "straight")) return;
+  if (!model.poles.every((pole) => pole.type === "straight")) return;
 
   const poles = [...model.poles].reverse(); // Same bottom-to-top order as drawPole().
   let currentY = 0;
   const leaderOffset = 12 / engine.scale; // 12 paper mm expressed in engineering mm.
 
   for (const pole of poles) {
-    const thickness = Number.isFinite(pole.thickness) && pole.thickness > 0 ? pole.thickness.toFixed(1) : "?";
+    const thickness =
+      Number.isFinite(pole.thickness) && pole.thickness > 0
+        ? pole.thickness.toFixed(1)
+        : "?";
     const topText = `\u00d8${format(pole.Lower_D)} \u00d7 t${thickness}`;
     const saved = engine.dimensionSegments;
     const obstacles = getLeaderObstacles(engine);
@@ -1350,15 +1836,36 @@ function drawPoleLeader(engine, model) {
     // the left only when no right-side position clears the reserved arm leaders.
     for (const side of [1, -1]) {
       for (const fraction of [0.5, 0.35, 0.2, 0.65, 0.8]) {
-        const target = { x: side * pole.Lower_D / 2, y: currentY + pole.height * fraction };
-        const elbow = { x: target.x + side * leaderOffset, y: target.y + leaderOffset };
-        engine.dimensionSegments = allowLeaderContact(obstacles, engine.toSvg(target.x, target.y));
-        const fitted = engine.fitObjectLeader(target, elbow, topText, 0, pole.material, "center", {
-          minFactor: 1, textClearance: 4
-        });
+        const target = {
+          x: (side * pole.Lower_D) / 2,
+          y: currentY + pole.height * fraction,
+        };
+        const elbow = {
+          x: target.x + side * leaderOffset,
+          y: target.y + leaderOffset,
+        };
+        engine.dimensionSegments = allowLeaderContact(
+          obstacles,
+          engine.toSvg(target.x, target.y),
+        );
+        const fitted = engine.fitObjectLeader(
+          target,
+          elbow,
+          topText,
+          0,
+          pole.material,
+          "center",
+          {
+            minFactor: 1,
+            textClearance: 4,
+          },
+        );
         const margin = 7 / engine.scale;
-        if (!engine.lastLeaderFitBlocked && fitted.y + margin <= currentY + pole.height &&
-            fitted.y - margin >= currentY) {
+        if (
+          !engine.lastLeaderFitBlocked &&
+          fitted.y + margin <= currentY + pole.height &&
+          fitted.y - margin >= currentY
+        ) {
           placement = { target, elbow: fitted };
           break;
         }
@@ -1366,7 +1873,13 @@ function drawPoleLeader(engine, model) {
       if (placement) break;
     }
     engine.dimensionSegments = saved;
-    if (placement) engine.drawLeader(placement.target, placement.elbow, topText, pole.material);
+    if (placement)
+      engine.drawLeader(
+        placement.target,
+        placement.elbow,
+        topText,
+        pole.material,
+      );
     else engine.unplacedStraightPoleLeader = true;
     currentY += pole.height;
   }
@@ -1378,26 +1891,54 @@ function drawPoleLeader(engine, model) {
 function getLeaderObstacles(engine) {
   engine.leaderGeometryCache ??= new WeakMap();
   const result = [];
-  for (const node of engine.root.querySelectorAll("path, polyline, line, text")) {
+  for (const node of engine.root.querySelectorAll(
+    "path, polyline, line, text",
+  )) {
     let segments = engine.leaderGeometryCache.get(node);
     if (!segments) {
       segments = [];
       const tag = node.tagName.toLowerCase();
       if (tag === "line") {
-        segments.push({a:{x:node.x1.baseVal.value,y:node.y1.baseVal.value},b:{x:node.x2.baseVal.value,y:node.y2.baseVal.value}});
+        segments.push({
+          a: { x: node.x1.baseVal.value, y: node.y1.baseVal.value },
+          b: { x: node.x2.baseVal.value, y: node.y2.baseVal.value },
+        });
       } else if (tag === "polyline") {
-        for (let i=1;i<node.points.numberOfItems;i++) segments.push({a:node.points.getItem(i-1),b:node.points.getItem(i)});
+        for (let i = 1; i < node.points.numberOfItems; i++)
+          segments.push({
+            a: node.points.getItem(i - 1),
+            b: node.points.getItem(i),
+          });
       } else if (tag === "text") {
-        const b = node.getBBox(), matrix = node.transform.baseVal.consolidate()?.matrix;
-        const corners = [[b.x,b.y],[b.x+b.width,b.y],[b.x+b.width,b.y+b.height],[b.x,b.y+b.height]]
-          .map(([x,y]) => matrix ? {x:matrix.a*x+matrix.c*y+matrix.e,y:matrix.b*x+matrix.d*y+matrix.f} : {x,y});
-        corners.forEach((a,i)=>segments.push({a,b:corners[(i+1)%4]}));
+        const b = node.getBBox(),
+          matrix = node.transform.baseVal.consolidate()?.matrix;
+        const corners = [
+          [b.x, b.y],
+          [b.x + b.width, b.y],
+          [b.x + b.width, b.y + b.height],
+          [b.x, b.y + b.height],
+        ].map(([x, y]) =>
+          matrix
+            ? {
+                x: matrix.a * x + matrix.c * y + matrix.e,
+                y: matrix.b * x + matrix.d * y + matrix.f,
+              }
+            : { x, y },
+        );
+        corners.forEach((a, i) =>
+          segments.push({ a, b: corners[(i + 1) % 4] }),
+        );
       } else {
-        const length = node.getTotalLength(), count = Math.max(1,Math.ceil(length/0.5));
+        const length = node.getTotalLength(),
+          count = Math.max(1, Math.ceil(length / 0.5));
         let a = node.getPointAtLength(0);
-        for(let i=1;i<=count;i++) { const b=node.getPointAtLength(length*i/count); segments.push({a,b}); a=b; }
+        for (let i = 1; i <= count; i++) {
+          const b = node.getPointAtLength((length * i) / count);
+          segments.push({ a, b });
+          a = b;
+        }
       }
-      engine.leaderGeometryCache.set(node,segments);
+      engine.leaderGeometryCache.set(node, segments);
     }
     result.push(...segments);
   }
@@ -1406,15 +1947,22 @@ function getLeaderObstacles(engine) {
 
 // Cut only a small contact gap out of the outline touched by the arrow.
 function allowLeaderContact(segments, tip) {
-  return segments.flatMap(({a,b}) => {
-    const dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy);
+  return segments.flatMap(({ a, b }) => {
+    const dx = b.x - a.x,
+      dy = b.y - a.y,
+      len = Math.hypot(dx, dy);
     if (!len) return [];
-    const t=((tip.x-a.x)*dx+(tip.y-a.y)*dy)/(len*len);
-    const nearest=Math.max(0,Math.min(1,t));
-    if(Math.hypot(a.x+nearest*dx-tip.x,a.y+nearest*dy-tip.y)>0.8) return [{a,b}];
-    const lo=Math.max(0,t-0.8/len),hi=Math.min(1,t+0.8/len),parts=[];
-    if(lo>0) parts.push({a,b:{x:a.x+lo*dx,y:a.y+lo*dy}});
-    if(hi<1) parts.push({a:{x:a.x+hi*dx,y:a.y+hi*dy},b});
+    const t = ((tip.x - a.x) * dx + (tip.y - a.y) * dy) / (len * len);
+    const nearest = Math.max(0, Math.min(1, t));
+    if (
+      Math.hypot(a.x + nearest * dx - tip.x, a.y + nearest * dy - tip.y) > 0.8
+    )
+      return [{ a, b }];
+    const lo = Math.max(0, t - 0.8 / len),
+      hi = Math.min(1, t + 0.8 / len),
+      parts = [];
+    if (lo > 0) parts.push({ a, b: { x: a.x + lo * dx, y: a.y + lo * dy } });
+    if (hi < 1) parts.push({ a: { x: a.x + hi * dx, y: a.y + hi * dy }, b });
     return parts;
   });
 }
@@ -1424,56 +1972,93 @@ function drawArmSpecificationLeader(engine, model) {
   // Share only when height/specification match and fix angles differ.
   const groups = [];
   for (const arm of model.arms ?? []) {
-    let group = groups.find(items => items[0].diameter === arm.diameter &&
-      items[0].thickness === arm.thickness && items[0].material === arm.material &&
-      Math.abs(items[0].height - arm.height) <= 1e-6 &&
-      items.every(item => (item.fixAngle ?? 0) !== (arm.fixAngle ?? 0)));
-    if (!group) { group = []; groups.push(group); }
+    let group = groups.find(
+      (items) =>
+        items[0].diameter === arm.diameter &&
+        items[0].thickness === arm.thickness &&
+        items[0].material === arm.material &&
+        Math.abs(items[0].height - arm.height) <= 1e-6 &&
+        items.every((item) => (item.fixAngle ?? 0) !== (arm.fixAngle ?? 0)),
+    );
+    if (!group) {
+      group = [];
+      groups.push(group);
+    }
     group.push(arm);
   }
-  for (const arms of groups) drawArmSpecificationGroup(engine, { ...model, arms });
+  for (const arms of groups)
+    drawArmSpecificationGroup(engine, { ...model, arms });
 }
 
 function drawArmSpecificationGroup(engine, model) {
-  const arms=model.arms ?? [];
-  if(!arms.length) return;
-  const first=arms[0];
-  if(!Number.isFinite(first.thickness) || first.thickness<=0) return;
-  const topText=`\u00d8${format(first.diameter)} \u00d7 t${first.thickness.toFixed(1)}`;
-  const saved=engine.dimensionSegments,obstacles=getLeaderObstacles(engine);
+  const arms = model.arms ?? [];
+  if (!arms.length) return;
+  const first = arms[0];
+  if (!Number.isFinite(first.thickness) || first.thickness <= 0) return;
+  const topText = `\u00d8${format(first.diameter)} \u00d7 t${first.thickness.toFixed(1)}`;
+  const saved = engine.dimensionSegments,
+    obstacles = getLeaderObstacles(engine);
   let placement;
-  for(const arm of arms) {
-    const connection=getArmConnection(model.poles,arm);
-    if(!connection) continue;
-    const direction=getArmDirection(arm.fixAngle);
-    for(const fraction of [0.5,0.75,0.25,0.9,0.1]) {
-      for(const edge of ["top","bottom"]) {
-        const start=connection[edge],end=connection[edge==="top"?"endTop":"endBottom"];
-        const target={x:direction*(start.x+(end.x-start.x)*fraction),y:start.y+(end.y-start.y)*fraction};
-        engine.dimensionSegments=allowLeaderContact(obstacles,engine.toSvg(target.x,target.y));
+  for (const arm of arms) {
+    const connection = getArmConnection(model.poles, arm);
+    if (!connection) continue;
+    const direction = getArmDirection(arm.fixAngle);
+    for (const fraction of [0.5, 0.75, 0.25, 0.9, 0.1]) {
+      for (const edge of ["top", "bottom"]) {
+        const start = connection[edge],
+          end = connection[edge === "top" ? "endTop" : "endBottom"];
+        const target = {
+          x: direction * (start.x + (end.x - start.x) * fraction),
+          y: start.y + (end.y - start.y) * fraction,
+        };
+        engine.dimensionSegments = allowLeaderContact(
+          obstacles,
+          engine.toSvg(target.x, target.y),
+        );
         // Try the original diagonal first, then steeper routes past short-arm dimensions.
-        for(const rise of [12,16,20,28,36]) {
-          for(const slope of [1,2,4,8]) {
-            for(const up of [1,-1]) {
-              const elbow={x:target.x+direction*rise/slope/engine.scale,y:target.y+up*rise/engine.scale};
-              const fitted=engine.fitObjectLeader(target,elbow,topText,0,arm.material,"center", {
-                minFactor: 0.8, textClearance: 4
-              });
-              if(!engine.lastLeaderFitBlocked){placement={target,elbow:fitted};break;}
+        for (const rise of [12, 16, 20, 28, 36]) {
+          for (const slope of [1, 2, 4, 8]) {
+            for (const up of [1, -1]) {
+              const elbow = {
+                x: target.x + (direction * rise) / slope / engine.scale,
+                y: target.y + (up * rise) / engine.scale,
+              };
+              const fitted = engine.fitObjectLeader(
+                target,
+                elbow,
+                topText,
+                0,
+                arm.material,
+                "center",
+                {
+                  minFactor: 0.8,
+                  textClearance: 4,
+                },
+              );
+              if (!engine.lastLeaderFitBlocked) {
+                placement = { target, elbow: fitted };
+                break;
+              }
             }
-            if(placement) break;
+            if (placement) break;
           }
-          if(placement) break;
+          if (placement) break;
         }
-        if(placement) break;
+        if (placement) break;
       }
-      if(placement) break;
+      if (placement) break;
     }
-    if(placement) break;
+    if (placement) break;
   }
-  engine.dimensionSegments=saved;
-  if(placement) engine.drawLeader(placement.target,placement.elbow,topText,first.material);
-  else engine.unplacedArmSpecificationLeader=true;
+  engine.dimensionSegments = saved;
+  if (placement)
+    engine.drawLeader(
+      placement.target,
+      placement.elbow,
+      topText,
+      first.material,
+    );
+  else engine.unplacedArmSpecificationLeader = true;
 }
 
 function drawArmLightingLeader(engine, model) {
@@ -1486,26 +2071,54 @@ function drawArmLightingLeader(engine, model) {
     const obstacles = getLeaderObstacles(engine);
     let placement;
     // Try outside edge, upper edge, then lower edge, with multiple directions.
-    for (const [i,j] of [[1,2],[2,3],[0,1]]) {
-      const target = {x:(points[i].x+points[j].x)/2,y:(points[i].y+points[j].y)/2};
-      const tip = engine.toSvg(target.x,target.y);
+    for (const [i, j] of [
+      [1, 2],
+      [2, 3],
+      [0, 1],
+    ]) {
+      const target = {
+        x: (points[i].x + points[j].x) / 2,
+        y: (points[i].y + points[j].y) / 2,
+      };
+      const tip = engine.toSvg(target.x, target.y);
       // Allow only the intended arrow contact with the object's outline.
       engine.dimensionSegments = allowLeaderContact(obstacles, tip);
-      for (const distance of [12,20,28]) {
-        for (const [side,up] of [[direction,1],[-direction,1],[direction,-1],[-direction,-1]]) {
-          const elbow = {x:target.x+side*distance/engine.scale,y:target.y+up*distance/engine.scale};
-          const fitted = engine.fitObjectLeader(target,elbow,"\u706f\u5177",0,"","center", {
-            textClearance: 4
-          });
-          if (!engine.lastLeaderFitBlocked) { placement={target,elbow:fitted}; break; }
+      for (const distance of [12, 20, 28]) {
+        for (const [side, up] of [
+          [direction, 1],
+          [-direction, 1],
+          [direction, -1],
+          [-direction, -1],
+        ]) {
+          const elbow = {
+            x: target.x + (side * distance) / engine.scale,
+            y: target.y + (up * distance) / engine.scale,
+          };
+          const fitted = engine.fitObjectLeader(
+            target,
+            elbow,
+            "\u706f\u5177",
+            0,
+            "",
+            "center",
+            {
+              textClearance: 4,
+            },
+          );
+          if (!engine.lastLeaderFitBlocked) {
+            placement = { target, elbow: fitted };
+            break;
+          }
         }
         if (placement) break;
       }
       if (placement) break;
     }
     engine.dimensionSegments = saved;
-    if (placement) engine.drawLeader(placement.target,placement.elbow,"灯具");
-    else engine.unplacedArmLightingLeaders = (engine.unplacedArmLightingLeaders ?? 0) + 1;
+    if (placement) engine.drawLeader(placement.target, placement.elbow, "灯具");
+    else
+      engine.unplacedArmLightingLeaders =
+        (engine.unplacedArmLightingLeaders ?? 0) + 1;
   }
 }
 
@@ -1518,11 +2131,11 @@ function drawObjectLeader(engine, model) {
   // Arrow touches the middle of the Lighting object's right edge.
   const target = {
     x: lightingWidth - 100,
-    y: totalHeight + lightingHeight / 2
+    y: totalHeight + lightingHeight / 2,
   };
   const elbow = {
     x: target.x + leaderOffset,
-    y: target.y + leaderOffset
+    y: target.y + leaderOffset,
   };
 
   engine.drawObjectLeader(target, elbow, "灯具");
@@ -1535,9 +2148,10 @@ function drawOpeningBoxLeader(engine, model) {
   const taperRatio = calculateTaperRatio(
     bottomPole.Lower_D,
     bottomPole.Upper_D,
-    bottomPole.height
+    bottomPole.height,
   );
-  const diameterPoleAtOpening = bottomPole.Lower_D - heightOpeningAtCenter * taperRatio;
+  const diameterPoleAtOpening =
+    bottomPole.Lower_D - heightOpeningAtCenter * taperRatio;
   // Always try the normal 12 paper mm first. fitObjectLeader() checks actual
   // scaled dimension positions and measured text before shortening it.
   const leaderOffset = 12 / engine.scale;
@@ -1545,11 +2159,11 @@ function drawOpeningBoxLeader(engine, model) {
   // Intersection of Box2's left side and the opening centerline.
   const target = {
     x: -diameterPoleAtOpening / 2 - 22.7,
-    y: heightOpeningAtCenter
+    y: heightOpeningAtCenter,
   };
   const elbow = {
     x: target.x - leaderOffset,
-    y: target.y + leaderOffset
+    y: target.y + leaderOffset,
   };
 
   engine.drawObjectLeader(target, elbow, "開口部");
@@ -1562,9 +2176,12 @@ function groupConnectedPoles(model) {
   for (const [index, pole] of model.poles.entries()) {
     const group = groups[groups.length - 1];
     const previous = group?.members[group.members.length - 1].pole;
-    const connected = previous && Math.abs(previous.Lower_D - pole.Upper_D) < 1e-9;
-    const sameSpecification = previous && Object.is(previous.thickness, pole.thickness)
-      && previous.material === pole.material;
+    const connected =
+      previous && Math.abs(previous.Lower_D - pole.Upper_D) < 1e-9;
+    const sameSpecification =
+      previous &&
+      Object.is(previous.thickness, pole.thickness) &&
+      previous.material === pole.material;
     if (connected && sameSpecification) group.members.push({ pole, index });
     else groups.push({ members: [{ pole, index }] });
   }
@@ -1574,14 +2191,18 @@ function groupConnectedPoles(model) {
 function drawLeaderPoleTaperThickness(engine, model) {
   const groups = groupConnectedPoles(model);
   for (const group of groups) {
-    if (!group.members.some(({pole}) => pole.type === "tapered")) continue;
+    if (!group.members.some(({ pole }) => pole.type === "tapered")) continue;
     const { pole } = group.members.find(({ pole }) => pole.type === "tapered");
     const ratio = calculateTaperRatio(pole.Lower_D, pole.Upper_D, pole.height);
     // Preserve the project's existing five-decimal ratio comparison for isolated poles.
-    const description = group.members.length > 1 || Number(ratio.toFixed(5)) !== 0.01
-      ? "温間スピニングテーパー" : "1/100テーパー";
-    const thicknessText = Number.isFinite(pole.thickness) && pole.thickness > 0
-      ? pole.thickness.toFixed(1) : "?";
+    const description =
+      group.members.length > 1 || Number(ratio.toFixed(5)) !== 0.01
+        ? "温間スピニングテーパー"
+        : "1/100テーパー";
+    const thicknessText =
+      Number.isFinite(pole.thickness) && pole.thickness > 0
+        ? pole.thickness.toFixed(1)
+        : "?";
     const topText = `${description}(t${thicknessText})`;
     const bottomText = `(JIS G3444 ${pole.material})`;
     const leaderOffset = 12 / engine.scale;
@@ -1591,22 +2212,44 @@ function drawLeaderPoleTaperThickness(engine, model) {
     // Prefer tapered segments; only then try other members of this connected group.
     const candidates = [
       ...group.members.filter(({ pole }) => pole.type === "tapered"),
-      ...group.members.filter(({ pole }) => pole.type !== "tapered")
+      ...group.members.filter(({ pole }) => pole.type !== "tapered"),
     ];
     for (const { pole: segment, index } of candidates) {
-      const bottomY = model.poles.slice(index + 1).reduce((sum, item) => sum + item.height, 0);
+      const bottomY = model.poles
+        .slice(index + 1)
+        .reduce((sum, item) => sum + item.height, 0);
       for (const fraction of [0.5, 0.65, 0.35, 0.8, 0.2]) {
-        const diameter = segment.Lower_D + (segment.Upper_D - segment.Lower_D) * fraction;
-        const target = { x: diameter / 2, y: bottomY + segment.height * fraction };
-        const elbow = { x: target.x + leaderOffset, y: target.y + leaderOffset };
-        engine.dimensionSegments = allowLeaderContact(obstacles, engine.toSvg(target.x, target.y));
-        const fitted = engine.fitObjectLeader(target, elbow, topText, 0, bottomText, "left", {
-          minFactor: 1, textClearance: 4
-        });
+        const diameter =
+          segment.Lower_D + (segment.Upper_D - segment.Lower_D) * fraction;
+        const target = {
+          x: diameter / 2,
+          y: bottomY + segment.height * fraction,
+        };
+        const elbow = {
+          x: target.x + leaderOffset,
+          y: target.y + leaderOffset,
+        };
+        engine.dimensionSegments = allowLeaderContact(
+          obstacles,
+          engine.toSvg(target.x, target.y),
+        );
+        const fitted = engine.fitObjectLeader(
+          target,
+          elbow,
+          topText,
+          0,
+          bottomText,
+          "left",
+          {
+            minFactor: 1,
+            textClearance: 4,
+          },
+        );
         const candidate = { target, elbow: fitted };
         // Reserve space for both text rows plus clearance, in paper mm.
         const textMargin = 7 / engine.scale;
-        const fitsSegment = fitted.y + textMargin <= bottomY + segment.height &&
+        const fitsSegment =
+          fitted.y + textMargin <= bottomY + segment.height &&
           fitted.y - textMargin >= bottomY;
         if (fitsSegment && !engine.lastLeaderFitBlocked) {
           placement = candidate;
@@ -1616,49 +2259,50 @@ function drawLeaderPoleTaperThickness(engine, model) {
       if (placement) break;
     }
     engine.dimensionSegments = savedSegments;
-    if (placement) engine.drawLeader(placement.target, placement.elbow, topText, bottomText, 0, "left");
+    if (placement)
+      engine.drawLeader(
+        placement.target,
+        placement.elbow,
+        topText,
+        bottomText,
+        0,
+        "left",
+      );
     else engine.unplacedTaperThicknessLeader = true;
   }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // Horizontal extents in engineering mm, measured from the pole centerline.
 function getHorizontalDrawingBounds(model) {
-  const maxDiameter = Math.max(...model.poles.flatMap(pole => [pole.Upper_D, pole.Lower_D]));
+  const maxDiameter = Math.max(
+    ...model.poles.flatMap((pole) => [pole.Upper_D, pole.Lower_D]),
+  );
   // Include the 350 mm baseplate and the lighting schematic (-100 to 500).
   let left = Math.max(maxDiameter / 2, 175);
-  let right = Math.max(maxDiameter / 2, 175, model.directObjectCount > 0 ? LIGHTING_WIDTH - 100 : 0);
+  let right = Math.max(
+    maxDiameter / 2,
+    175,
+    model.directObjectCount > 0 ? LIGHTING_WIDTH - 100 : 0,
+  );
   const totalHeight = model.poles.reduce((sum, pole) => sum + pole.height, 0);
   let minY = -CENTERLINE_EXTENSION;
-  let maxY = totalHeight + (model.directObjectCount > 0
-    ? Math.max(LIGHTING_HEIGHT, 120 + CENTERLINE_EXTENSION) : CENTERLINE_EXTENSION);
+  let maxY =
+    totalHeight +
+    (model.directObjectCount > 0
+      ? Math.max(LIGHTING_HEIGHT, 120 + CENTERLINE_EXTENSION)
+      : CENTERLINE_EXTENSION);
   for (const arm of model.arms ?? []) {
     const connection = getArmConnection(model.poles, arm);
     if (!connection) continue;
-    const radians = (arm.verticalAngle ?? 0) * Math.PI / 180;
+    const radians = ((arm.verticalAngle ?? 0) * Math.PI) / 180;
     const cos = Math.cos(radians);
     const sin = Math.abs(Math.sin(radians));
     const adapterLength = arm.adapterLength ?? 120;
     const adapterDiameter = arm.adapterDiameter ?? 60.5;
     const reach = Math.max(
-      arm.length + sin * arm.diameter / 2,
-      arm.length + cos * adapterLength + sin * adapterDiameter / 2,
-      arm.length + cos * (adapterLength + CENTERLINE_EXTENSION)
+      arm.length + (sin * arm.diameter) / 2,
+      arm.length + cos * adapterLength + (sin * adapterDiameter) / 2,
+      arm.length + cos * (adapterLength + CENTERLINE_EXTENSION),
     );
     if (getArmDirection(arm.fixAngle) === -1) left = Math.max(left, reach);
     else right = Math.max(right, reach);
@@ -1670,15 +2314,25 @@ function getHorizontalDrawingBounds(model) {
     }
     const signedSin = Math.sin(radians);
     const tipY = connection.endCenter.y + adapterLength * signedSin;
-    const halfY = Math.abs(cos) * adapterDiameter / 2;
-    const centerlineY = connection.endCenter.y + (adapterLength + CENTERLINE_EXTENSION) * signedSin;
-    const heights = [connection.top.y, connection.bottom.y, connection.endTop.y,
-      connection.endBottom.y, tipY - halfY, tipY + halfY, centerlineY,
-      ...lightingPoints.map(point => point.y)];
+    const halfY = (Math.abs(cos) * adapterDiameter) / 2;
+    const centerlineY =
+      connection.endCenter.y +
+      (adapterLength + CENTERLINE_EXTENSION) * signedSin;
+    const heights = [
+      connection.top.y,
+      connection.bottom.y,
+      connection.endTop.y,
+      connection.endBottom.y,
+      tipY - halfY,
+      tipY + halfY,
+      centerlineY,
+      ...lightingPoints.map((point) => point.y),
+    ];
     minY = Math.min(minY, ...heights);
     maxY = Math.max(maxY, ...heights);
   }
-  for (const { object } of getObjectHeightOrder(model)) maxY = Math.max(maxY, object.height);
+  for (const { object } of getObjectHeightOrder(model))
+    maxY = Math.max(maxY, object.height);
   return { left, right, minY, maxY };
 }
 
@@ -1686,24 +2340,30 @@ function getHorizontalDrawingBounds(model) {
 function getSchematicPageLayout(model) {
   const bounds = getHorizontalDrawingBounds(model);
   const totalHeight = model.poles.reduce((sum, pole) => sum + pole.height, 0);
-  const radius = Math.max(...model.poles.flatMap(pole => [pole.Upper_D, pole.Lower_D])) / 2;
+  const radius =
+    Math.max(...model.poles.flatMap((pole) => [pole.Upper_D, pole.Lower_D])) /
+    2;
   const objectCount = getObjectHeightOrder(model).length;
   const columns = objectCount ? 12 + (objectCount - 1) * 8 : 0;
-  const pageLeft = 10, pageRight = 200;
+  const pageLeft = 10,
+    pageRight = 200;
   const leaderSpace = 24; // Paper mm outside object geometry.
-  const widths = scale => ({
+  const widths = (scale) => ({
     // Pole height dimensions extend 48 mm left of the pole, plus text clearance.
     left: Math.max(bounds.left * scale + leaderSpace, radius * scale + 56),
     right: Math.max(
       bounds.right * scale + leaderSpace + columns,
       175 * scale + 16 + columns,
-      radius * scale + 56 + columns // Reserve space for pole specification leaders.
-    )
+      radius * scale + 56 + columns, // Reserve space for pole specification leaders.
+    ),
   });
-  const verticalScale = Math.min(170 / totalHeight,
+  const verticalScale = Math.min(
+    170 / totalHeight,
     125 / (bounds.maxY - totalHeight / 2),
-    110 / (totalHeight / 2 - bounds.minY));
-  let low = 0, high = verticalScale;
+    110 / (totalHeight / 2 - bounds.minY),
+  );
+  let low = 0,
+    high = verticalScale;
   // Monotonic fit: find the largest scale fitting both sides together.
   for (let i = 0; i < 48; i++) {
     const candidate = (low + high) / 2;
@@ -1716,20 +2376,35 @@ function getSchematicPageLayout(model) {
   const spare = pageRight - pageLeft - width.left - width.right;
   return {
     scale,
-    origin: { x: pageLeft + width.left + spare / 2, y: 170 + totalHeight * scale / 2 }
+    origin: {
+      x: pageLeft + width.left + spare / 2,
+      y: 170 + (totalHeight * scale) / 2,
+    },
   };
 }
 
 function render(model) {
   content.replaceChildren();
-  
+
   // Total tinggi seluruh pole
   const totalHeight = model.poles.reduce((sum, pole) => sum + pole.height, 0);
-  const MaxDiameter = Math.max(...model.poles.flatMap(pole => [pole.Upper_D, pole.Lower_D]));
+  const MaxDiameter = Math.max(
+    ...model.poles.flatMap((pole) => [pole.Upper_D, pole.Lower_D]),
+  );
   const { scale, origin } = getSchematicPageLayout(model);
   const engine = new DrawingEngine(content, origin, scale);
-  engine.drawText(16, 20, "Pole with Parametric Dimensions", "drawing-text heading");
-  engine.drawText(16, 28, "Model units: mm | A4 portrait | Automatic scale", "drawing-text note");
+  // engine.drawText(
+  //   16,
+  //   20,
+  //   "Pole with Parametric Dimensions",
+  //   "drawing-text heading",
+  // );
+  // engine.drawText(
+  //   16,
+  //   28,
+  //   "Model units: mm | A4 portrait | Automatic scale",
+  //   "drawing-text note",
+  // );
   // Draw Objects
   drawPole(engine, model);
   drawArm(engine, model);
@@ -1778,9 +2453,14 @@ function render(model) {
 
   // engine.drawText(16, 269, `Scale ≈ 1 : ${format(1 / scale)} | Length ${format(model.Upper_D)} mm × Height ${format(model.height)} mm`, "drawing-text note");
   status.textContent = `Poles: ${model.poleCount} | Max diameter: ${format(MaxDiameter)} mm | Total height: ${format(totalHeight)} mm. Drawing scale ≈ 1 : ${format(1 / scale)}.`;
-  if (engine.unplacedArmSpecificationLeader) status.textContent += " Arm specification leader: no clear position available.";
-  if (engine.unplacedTaperThicknessLeader) status.textContent += " Taper thickness leader: no clear position available.";
-  if (engine.unplacedStraightPoleLeader) status.textContent += " Straight pole leader: no clear position available.";
+  if (engine.unplacedArmSpecificationLeader)
+    status.textContent +=
+      " Arm specification leader: no clear position available.";
+  if (engine.unplacedTaperThicknessLeader)
+    status.textContent +=
+      " Taper thickness leader: no clear position available.";
+  if (engine.unplacedStraightPoleLeader)
+    status.textContent += " Straight pole leader: no clear position available.";
   if (engine.unplacedArmLightingLeaders) {
     status.textContent += ` ${engine.unplacedArmLightingLeaders} arm lighting leader(s): no clear position available.`;
   }
@@ -1788,7 +2468,12 @@ function render(model) {
 
 function updateDrawing() {
   // Optional editor bridge can protect a manual revision without changing geometry.
-  if (!window.dispatchEvent(new CustomEvent("schematic:before-generate", { cancelable: true }))) return;
+  if (
+    !window.dispatchEvent(
+      new CustomEvent("schematic:before-generate", { cancelable: true }),
+    )
+  )
+    return;
   // Capture the latest values from the getters for this render.
   const model = {
     poleCount: parameters.poleCount,
@@ -1798,17 +2483,21 @@ function updateDrawing() {
     directObjectCount: parameters.directObjectCount,
     directObject: parameters.directObject,
     overHeadWireCount: parameters.overHeadWireCount,
-    overHeadWire: parameters.overHeadWire
+    overHeadWire: parameters.overHeadWire,
   };
 
   // Validate only selected rows; hidden rows must not block the drawing.
   for (let index = 0; index < model.poleCount; index++) {
     const pole = model.poles[index];
     const inputs = document.querySelectorAll(`#pole-step-${index + 1} input`);
-    const validGeometry = [pole.Upper_D, pole.Lower_D, pole.height]
-      .every(value => Number.isFinite(value) && value > 0);
+    const validGeometry = [pole.Upper_D, pole.Lower_D, pole.height].every(
+      (value) => Number.isFinite(value) && value > 0,
+    );
 
-    if (!validGeometry || !Array.from(inputs).every(input => input.checkValidity())) {
+    if (
+      !validGeometry ||
+      !Array.from(inputs).every((input) => input.checkValidity())
+    ) {
       status.textContent = `Pole ${index + 1}: enter a positive diameter and height, and check the other input values. The last drawing is kept if available.`;
       return;
     }

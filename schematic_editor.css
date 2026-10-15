@@ -12,3 +12,108 @@
 @media print {
   .editor-toolbar, #schematic-editor-dialog { display: none !important; }
 }
+
+/* Embedded in the React host (schematic_embed.js) */
+html[data-embed="true"] section.controls,
+html[data-embed="true"] #parameters,
+html[data-embed="true"] #status,
+html[data-embed="true"] #save-project,
+html[data-embed="true"] #open-project,
+html[data-embed="true"] #download-svg,
+html[data-embed="true"] #regenerate-schematic {
+  display: none !important;
+}
+
+html[data-embed="true"] .editor-toolbar {
+  position: absolute !important;
+  top: 14px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  z-index: 100 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+  padding: 6px 14px !important;
+  border-radius: 10px !important;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.18) !important;
+  border: 1px solid #cbd5e1 !important;
+}
+
+html[data-embed="true"] #edit-schematic {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  background: #2563eb !important;
+  color: white !important;
+  font-weight: 600 !important;
+  border: none !important;
+  border-radius: 6px !important;
+  padding: 8px 18px !important;
+  cursor: pointer !important;
+  font-size: 13px !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2) !important;
+  transition: background 0.15s ease !important;
+}
+
+html[data-embed="true"] #edit-schematic:hover {
+  background: #1d4ed8 !important;
+}
+
+html[data-embed="true"],
+html[data-embed="true"] body {
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  background: white !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+html[data-embed="true"] main.workspace {
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+html[data-embed="true"] #drawing,
+html[data-embed="true"] #edited-preview {
+  max-width: 100vw !important;
+  max-height: 100vh !important;
+}
+
+html[data-embed="true"] #schematic-editor-dialog {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  max-width: 100vw !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-sizing: border-box !important;
+  background: white !important;
+  z-index: 99999 !important;
+}
+
+html[data-embed="true"] .editor-dialog-header {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding: 10px 16px !important;
+  background: #f8fafc !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+
+html[data-embed="true"] #svg-editor-frame {
+  display: block !important;
+  width: 100vw !important;
+  height: calc(100vh - 58px) !important;
+  border: 0 !important;
+}
