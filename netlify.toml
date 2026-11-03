@@ -1,0 +1,18 @@
+# Konfigurasi Deployment Netlify untuk Sistem Skematik Amir (test_FE_schematic)
+
+[build]
+  # Direktori yang dipublish (root direktori karena static site murni)
+  publish = "."
+
+[[headers]]
+  # Terapkan header keamanan untuk semua route file
+  for = "/*"
+  [headers.values]
+    # Izinkan cross-origin resource sharing
+    Access-Control-Allow-Origin = "*"
+
+    # Izinkan halaman di-load di dalam iframe oleh:
+    # 1. 'self' (domain Amir sendiri)
+    # 2. Localhost React (pengembangan lokal port 5173 / 127.0.0.1)
+    # 3. Domain Netlify React Anda & semua preview deployment Netlify
+    Content-Security-Policy = "frame-ancestors 'self' http://localhost:5173 http://127.0.0.1:5173 https://calculationsystemkoribaliv4.netlify.app https://*.netlify.app;"

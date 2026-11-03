@@ -1978,8 +1978,6 @@ function render(model) {
   const MaxDiameter = Math.max(...model.poles.flatMap(pole => [pole.Upper_D, pole.Lower_D]));
   const { scale, origin } = getSchematicPageLayout(model);
   const engine = new DrawingEngine(content, origin, scale);
-  engine.drawText(16, 20, "Pole with Parametric Dimensions", "drawing-text heading");
-  engine.drawText(16, 28, "Model units: mm | A4 portrait | Automatic scale", "drawing-text note");
   // Draw Objects
   drawPole(engine, model);
   drawArm(engine, model);

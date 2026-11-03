@@ -123,6 +123,9 @@ function initSchematicEditor() {
   const message = text => { $("editor-status").textContent = text; };
   const inputs = () => [...form.querySelectorAll("input[id], select[id]")];
   const readParameters = () => Object.fromEntries(inputs().map(node => [node.id, node.value]));
+  // Integration hooks for schematic_embed.js. Nothing changes when no one listens.
+  const emit = (name, detail = {}) => window.dispatchEvent(new CustomEvent(name, { detail }));
+  let captureCount = 0;
   const enableActions = enabled => {
     for (const id of ["edit-schematic", "save-project", "download-svg"]) $(id).disabled = !enabled;
   };
@@ -141,6 +144,8 @@ function initSchematicEditor() {
     preview.hidden = true; source.removeAttribute("hidden");
     enableActions(true);
     message("Generated — siap diedit. Save Project untuk menyimpan ke file.");
+    captureCount++;
+    emit("schematic:captured", { svg: state.getSnapshot().generatedSvg, parameters: generatedParameters, status: generatedStatus });
   };
   window.addEventListener("schematic:generated", capture);
   window.addEventListener("schematic:before-generate", event => {
@@ -174,18 +179,22 @@ function initSchematicEditor() {
     }).catch(error => { readyPromise = null; throw error; });
     return readyPromise;
   }
-  $("edit-schematic").addEventListener("click", async () => {
+  async function openEditor() {
     const token = ++session;
     dialog.showModal(); $("apply-schematic").disabled = true;
     $("editor-loading").hidden = false; $("editor-loading").textContent = "Memuat editor...";
     try {
       editorApi = await loadEditor();
       if (token !== session || !dialog.open) return;
-      editorApi.load(state.getDisplaySvg());
+      let svg = state.getDisplaySvg(); if (!svg) { capture(); svg = state.getDisplaySvg(); } if (!svg) throw new Error("Gambar schematic belum siap."); editorApi.load(svg);
       $("apply-schematic").disabled = false; $("editor-loading").hidden = true;
     } catch (error) { $("editor-loading").textContent = error.message; }
-  });
-  function cancel() { session++; dialog.close(); message("Edit dibatalkan; schematic sebelumnya tetap tersedia."); }
+  }
+  $("edit-schematic").addEventListener("click", openEditor);
+  function cancel() {
+    session++; dialog.close(); message("Edit dibatalkan; schematic sebelumnya tetap tersedia.");
+    emit("schematic:editor-cancelled");
+  }
   $("cancel-schematic").addEventListener("click", cancel);
   dialog.addEventListener("cancel", event => { event.preventDefault(); cancel(); });
   $("apply-schematic").addEventListener("click", () => {
@@ -193,6 +202,7 @@ function initSchematicEditor() {
       state.applyEditedSvg(validateSvg(editorApi.getSvg()));
       applied = true; unsavedManual = true; showEdited(); dialog.close(); session++;
       message("Hasil manual diterapkan. Klik Save Project agar tersimpan ke file.");
+      emit("schematic:applied", { svg: state.getDisplaySvg() });
     } catch (error) { $("editor-loading").hidden = false; $("editor-loading").textContent = error.message; }
   });
   $("regenerate-schematic").addEventListener("click", () => {
@@ -202,6 +212,20 @@ function initSchematicEditor() {
     finally { bypass = false; }
     // Only capture(), after a successful render, clears the manual revision.
   });
+  // Host-driven generate (embed bridge). The host asks its own user before
+  // replacing a manual revision, so no confirm() here.
+  function regenerateFromHost({ replaceManualEdit = false } = {}) {
+    if (applied && !replaceManualEdit) {
+      stale = JSON.stringify(readParameters()) !== JSON.stringify(generatedParameters);
+      message(stale ? "Parameter berubah. Hasil manual dipertahankan; klik Generate Ulang untuk menggantinya." : "Hasil manual aktif.");
+      return { generated: false, blocked: true, stale };
+    }
+    const before = captureCount;
+    bypass = true;
+    try { window.dispatchEvent(new CustomEvent("schematic:regenerate")); }
+    finally { bypass = false; }
+    return { generated: captureCount !== before, blocked: false, stale: false, status: $("status").textContent };
+  }
   $("download-svg").addEventListener("click", () => download("schematic.svg", state.getDisplaySvg(), "image/svg+xml"));
   $("save-project").addEventListener("click", () => {
     const project = { format: "pole-schematic", version: 1, savedAt: new Date().toISOString(),
@@ -211,36 +235,51 @@ function initSchematicEditor() {
     unsavedManual = false;
     message("Download proyek dimulai. File berisi parameter serta SVG generated dan edited.");
   });
+  // Shared by Open Project and the embed bridge (OPEN_PROJECT).
+  function restoreProject(project, { askConfirm = true, protectSnapshot = true } = {}) {
+    if (!project || project.format !== "pole-schematic" || project.version !== 1) throw new Error("Versi/format proyek tidak didukung.");
+    const generated = validateSvg(project.generatedSvg);
+    const edited = project.editedSvg === null ? null : validateSvg(project.editedSvg);
+    const validParameters = values => {
+      if (!values || typeof values !== "object") throw new Error("Parameter proyek tidak valid.");
+      for (const node of inputs()) {
+        if (typeof values[node.id] !== "string") throw new Error(`Parameter hilang: ${node.id}`);
+        if (node.tagName === "SELECT" && ![...node.options].some(option => option.value === values[node.id])) throw new Error(`Pilihan tidak valid: ${node.id}`);
+      }
+    };
+    validParameters(project.parameters);
+    validParameters(project.draftParameters ?? project.parameters);
+    if (askConfirm && state.getDisplaySvg() && !confirm("Buka proyek ini dan ganti schematic saat ini?")) return false;
+    state.setGeneratedSvg(generated); if (edited !== null) state.applyEditedSvg(edited);
+    generatedParameters = project.parameters; generatedStatus = String(project.generatedStatus ?? "");
+    for (const node of inputs()) node.value = (project.draftParameters ?? project.parameters)[node.id];
+    applied = protectSnapshot; // Protect an opened snapshot, even if it has no manual edits yet.
+    unsavedManual = false;
+    stale = JSON.stringify(readParameters()) !== JSON.stringify(generatedParameters);
+    showEdited(); enableActions(true); $("status").textContent = generatedStatus;
+    message(stale ? "Proyek dibuka. Parameter draft berbeda; generate ulang bila diperlukan." : "Proyek dibuka; hasil tersimpan ditampilkan.");
+    return true;
+  }
   $("open-project").addEventListener("click", () => $("project-file").click());
   $("project-file").addEventListener("change", async event => {
     const file = event.target.files[0]; if (!file) return;
     try {
       if (file.size > 20_000_000) throw new Error("File proyek terlalu besar.");
       const project = JSON.parse(await file.text());
-      if (project.format !== "pole-schematic" || project.version !== 1) throw new Error("Versi/format proyek tidak didukung.");
-      const generated = validateSvg(project.generatedSvg);
-      const edited = project.editedSvg === null ? null : validateSvg(project.editedSvg);
-      const validParameters = values => {
-        if (!values || typeof values !== "object") throw new Error("Parameter proyek tidak valid.");
-        for (const node of inputs()) {
-          if (typeof values[node.id] !== "string") throw new Error(`Parameter hilang: ${node.id}`);
-          if (node.tagName === "SELECT" && ![...node.options].some(option => option.value === values[node.id])) throw new Error(`Pilihan tidak valid: ${node.id}`);
-        }
-      };
-      validParameters(project.parameters);
-      validParameters(project.draftParameters ?? project.parameters);
-      if (state.getDisplaySvg() && !confirm("Buka proyek ini dan ganti schematic saat ini?")) return;
-      state.setGeneratedSvg(generated); if (edited !== null) state.applyEditedSvg(edited);
-      generatedParameters = project.parameters; generatedStatus = String(project.generatedStatus ?? "");
-      for (const node of inputs()) node.value = (project.draftParameters ?? project.parameters)[node.id];
-      applied = true; // Protect an opened snapshot, even if it has no manual edits yet.
-      unsavedManual = false;
-      stale = JSON.stringify(readParameters()) !== JSON.stringify(generatedParameters);
-      showEdited(); enableActions(true); $("status").textContent = generatedStatus;
-      message(stale ? "Proyek dibuka. Parameter draft berbeda; generate ulang bila diperlukan." : "Proyek dibuka; hasil tersimpan ditampilkan.");
+      restoreProject(project);
     } catch (error) { message(`Gagal membuka proyek: ${error.message}`); }
     finally { event.target.value = ""; }
   });
+  // Narrow API for schematic_embed.js; DrawingEngine stays untouched.
+  window.schematicHost = Object.freeze({
+    version: 1,
+    readParameters,
+    getSnapshot: () => ({ ...state.getSnapshot(), parameters: generatedParameters, status: generatedStatus, applied, stale }),
+    regenerate: regenerateFromHost,
+    restoreProject: (project, options = {}) => restoreProject(project, { ...options, askConfirm: false }),
+    openEditor
+  });
+  emit("schematic:host-ready");
   window.addEventListener("beforeunload", event => {
     if (dialog.open || unsavedManual) { event.preventDefault(); event.returnValue = ""; }
   });

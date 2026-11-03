@@ -66,6 +66,8 @@ fs.mkdirSync(output, {recursive:true});
     assert.equal(project.draftParameters['pole-1-height'],'5100');
     assert(project.editedSvg && project.generatedSvg!==project.editedSvg);
     await page.reload();
+    // The merged app starts with a valid default schematic, so opening a project confirms replacement.
+    page.once('dialog', d => d.accept());
     await page.locator('#project-file').setInputFiles(projectPath);
     await page.waitForFunction(()=>document.getElementById('editor-status').textContent.startsWith('Proyek dibuka'));
     assert.equal(await page.locator('#pole-1-height').inputValue(),'5100');
