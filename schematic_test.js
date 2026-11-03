@@ -185,7 +185,12 @@ class DrawingEngine {
   paperLine(a, b, className = "dimension-line") {
     if (this.collectDimensions) this.dimensionSegments.push({ a, b });
     // Nilai default className adalah "dimension-line" jika tidak diberikan argumen ketiga.
-    return this.element("line", { x1: a.x, y1: a.y, x2: b.x, y2: b.y, class: className });
+    const node = this.element("line", { x1: a.x, y1: a.y, x2: b.x, y2: b.y, class: className });
+    if (this.collectDimensions) {
+      this.dimensionNodes ??= new WeakSet();
+      this.dimensionNodes.add(node);
+    }
+    return node;
   }
 
   drawLine(a, b, className = "object-line") {
@@ -280,10 +285,15 @@ class DrawingEngine {
     const textWidth = label.getComputedTextLength();
     const textBox = label.getBBox();
     label.remove();
-    const lowerLabel = bottomText ? this.drawText(0, 0, bottomText) : null;
-    const lowerWidth = lowerLabel ? lowerLabel.getComputedTextLength() : 0;
-    const lowerBox = lowerLabel ? lowerLabel.getBBox() : null;
-    if (lowerLabel) lowerLabel.remove();
+    const lowerRows = options.lowerRows ?? (bottomText ? [bottomText] : []);
+    const lowerMetrics = lowerRows.map(text => {
+      const node = this.drawText(0, 0, text);
+      const metric = { width: node.getComputedTextLength(), box: node.getBBox() };
+      node.remove();
+      return metric;
+    });
+    const lowerWidth = Math.max(0, ...lowerMetrics.map(item => item.width));
+    const lowerBox = lowerMetrics.length ? lowerMetrics[lowerMetrics.length - 1].box : null;
     const width = Math.max(shelfWidth, textWidth + 2, lowerWidth + 2);
     const side = bend.x >= tip.x ? 1 : -1;
     const textClearance = options.textClearance ?? 1.5; // Paper mm around the text.
@@ -317,7 +327,7 @@ class DrawingEngine {
       const left = textAlign === "left" ? textX : textX - widest / 2;
       const right = left + widest;
       const top = candidate.y - 2 + textBox.y;
-      const bottom = lowerBox ? candidate.y + 5 + lowerBox.y + lowerBox.height : top + textBox.height;
+      const bottom = lowerBox ? candidate.y + 5 * lowerRows.length + lowerBox.y + lowerBox.height : top + textBox.height;
       const corners = [{x:left,y:top}, {x:right,y:top}, {x:right,y:bottom}, {x:left,y:bottom}];
       const inside = p => p.x >= left && p.x <= right && p.y >= top && p.y <= bottom;
       const candidateBounds = {
@@ -326,12 +336,13 @@ class DrawingEngine {
         top: Math.min(tip.y,candidate.y,top)-textClearance,
         bottom: Math.max(tip.y,candidate.y,bottom)+textClearance
       };
-      const blocked = this.dimensionSegments.some(({ a, b }) => {
+      const blocked = this.dimensionSegments.some(({ a, b, isDimension }) => {
         // Cheap bounding-box rejection before the detailed intersection tests.
         if(Math.max(a.x,b.x)<candidateBounds.left || Math.min(a.x,b.x)>candidateBounds.right ||
            Math.max(a.y,b.y)<candidateBounds.top || Math.min(a.y,b.y)>candidateBounds.bottom) return false;
-        return segmentsNear(tip, candidate, a, b, lineClearance) ||
-        segmentsNear(candidate, end, a, b, lineClearance) ||
+        const mayCross = options.allowDimensionCrossing && isDimension;
+        return (!mayCross && (segmentsNear(tip, candidate, a, b, lineClearance) ||
+        segmentsNear(candidate, end, a, b, lineClearance))) ||
         inside(a) || inside(b) || corners.some((p, i) =>
           segmentsNear(p, corners[(i + 1) % 4], a, b, textClearance));
       }) || this.diameterAnnotations.some(({box}) =>
@@ -363,7 +374,7 @@ class DrawingEngine {
   }
 
   // Endpoints in model mm; annotation offset in paper mm.
-  drawDimension(a, b, orientation, offset, label, dimensionPosition) {
+  drawDimension(a, b, orientation, offset, label, dimensionPosition, options = {}) {
     const start = this.toSvg(a.x, a.y);
     const end = this.toSvg(b.x, b.y);
     const horizontal = orientation === "horizontal";
@@ -379,9 +390,9 @@ class DrawingEngine {
     }
     const sign = Math.sign(offset);
     const objectGap = 30 * this.scale; // 30 mm engineering, converted to paper mm.
-    for (const [anchor, target] of [[start, p], [end, q]]) {
+    for (const [anchor, target, gap] of [[start, p, objectGap], [end, q, options.endGap ?? objectGap]]) {
       this.paperLine(
-        { x: anchor.x + (horizontal ? 0 : sign * objectGap), y: anchor.y + (horizontal ? sign * objectGap : 0) },
+        { x: anchor.x + (horizontal ? 0 : sign * gap), y: anchor.y + (horizontal ? sign * gap : 0) },
         { x: target.x + (horizontal ? 0 : sign * 2), y: target.y + (horizontal ? sign * 2 : 0) },
       );
     }
@@ -876,6 +887,96 @@ function drawLightingSchematic(engine, model) {
   ], "lighting-line");
 }
 
+
+
+
+
+
+
+
+
+
+
+// OHW detail dimensions in engineering mm (400 is the wire chord, R250 its radius).
+const OHW_HOOK_BAND = Object.freeze({
+  thickness: 3, height: 30, centerGap: 10,
+  hookRadius: 12, neckLength: 16.5, wireChord: 400, wireRadius: 250, wireDropAngle: 20
+});
+
+// Pole inputs run top-to-bottom. At a joint, use the upper segment's lower end.
+function getPoleDiameterAtHeight(poles, height) {
+  if (!Number.isFinite(height) || height < 0) return null;
+  let bottom = 0;
+  for (let index = poles.length - 1; index >= 0; index--) {
+    const pole = poles[index];
+    const top = bottom + pole.height;
+    if (height < top || (index === 0 && height === top)) {
+      const fraction = (height - bottom) / pole.height;
+      return pole.Lower_D + (pole.Upper_D - pole.Lower_D) * fraction;
+    }
+    bottom = top;
+  }
+  return null; // OHW outside the pole must not attach to an arbitrary segment.
+}
+
+// OHW uses two elevation views only, including the 90/270-degree boundaries.
+function getOHWDirection(fixAngle = 0) {
+  return fixAngle > 90 && fixAngle <= 270 ? -1 : 1;
+}
+
+// Rotate only the wire about its hook attachment, downward on either pole side.
+// Drawing, leader anchors and page bounds share these exact model coordinates.
+function getOHWWireGeometry(diameter, wire) {
+  const d = OHW_HOOK_BAND;
+  const side = getOHWDirection(wire.fixAngle ?? 0);
+  const hook = diameter / 2 + d.thickness + d.neckLength + d.hookRadius;
+  const angle = d.wireDropAngle * Math.PI / 180;
+  const cos = Math.cos(angle), sin = Math.sin(angle);
+  const centerRise = Math.sqrt(d.wireRadius ** 2 - (d.wireChord / 2) ** 2);
+  const point = (u, v) => ({
+    x: side * (hook + u * cos + v * sin),
+    y: wire.height - u * sin + v * cos
+  });
+  const attachment = point(0, 0);
+  const outer = point(d.wireChord, 0);
+  const middle = point(d.wireChord / 2, centerRise - d.wireRadius);
+  const center = point(d.wireChord / 2, centerRise);
+  const lowest = { x: center.x, y: center.y - d.wireRadius };
+  return { attachment, outer, middle, lowest, radius: d.wireRadius,
+    sweep: side === 1 ? 1 : 0 };
+}
+
+function drawOHWHookBand(engine, model) {
+  const detail = OHW_HOOK_BAND;
+  for (const wire of model.overHeadWire ?? []) {
+    const diameter = getPoleDiameterAtHeight(model.poles, wire.height);
+    if (!(diameter > detail.centerGap)) continue;
+    // Local detail is drawn to the left, so mirror it for the right-hand view.
+    const direction = -getOHWDirection(wire.fixAngle ?? 0);
+    const point = (x, y = 0) => ({ x: direction * x, y: wire.height + y });
+    const outer = diameter / 2 + detail.thickness;
+    const halfHeight = detail.height / 2;
+    const gap = detail.centerGap / 2;
+    for (const [left, right] of [[-outer, -gap], [gap, outer]]) {
+      engine.drawPolyline([
+        point(left, -halfHeight), point(right, -halfHeight),
+        point(right, halfHeight), point(left, halfHeight), point(left, -halfHeight)
+      ]);
+    }
+
+    const hookRight = -outer - detail.neckLength;
+    const hookCenter = hookRight - detail.hookRadius;
+    const radius = detail.hookRadius;
+    const sweep = direction === 1 ? 0 : 1;
+    engine.drawLine(point(-outer), point(hookRight));
+    // Open hook: 270 degrees from the top, around the left/bottom, to the neck.
+    engine.drawArc(point(hookCenter, radius), point(hookCenter, -radius), radius, sweep);
+    engine.drawArc(point(hookCenter, -radius), point(hookRight), radius, sweep);
+    const cable = getOHWWireGeometry(diameter, wire);
+    engine.drawArc(cable.outer, cable.attachment, cable.radius, cable.sweep);
+  }
+}
+
 // --------------Center Line Function-----------------
 const CENTERLINE_EXTENSION = 100; // Engineering mm, shared by pole and arm.
 // Draw Centerline for Pole
@@ -1006,11 +1107,24 @@ function drawGroundReference(engine) {
 }
 
 // Draw Dimension for Pole
+// Leave a paper-space annotation lane outside left-facing OHW geometry.
+function getPoleHeightOffset(model, scale) {
+  let offset = 40;
+  for (const wire of model.overHeadWire ?? []) {
+    const diameter = getPoleDiameterAtHeight(model.poles, wire.height);
+    if (!(diameter > OHW_HOOK_BAND.centerGap) || getOHWDirection(wire.fixAngle ?? 0) !== -1) continue;
+    const d = OHW_HOOK_BAND;
+    const reach = diameter / 2 + d.thickness + d.neckLength + d.hookRadius + d.wireChord;
+    offset = Math.max(offset, reach * scale + 58);
+  }
+  return -offset;
+}
+
 function drawPoleDimensions(engine, model, labels) {
 
   const poles = [...model.poles].reverse();
   let currentY = 0;
-  const individualOffset = -40;
+  const individualOffset = getPoleHeightOffset(model, engine.scale);
   const totalOffset = individualOffset - 8 ; // Total dimension line is slightly further out than individual dimensions.
   const overallMaxDiameter = Math.max(...poles.flatMap(pole => [pole.Lower_D, pole.Upper_D]));
   const dimensionX = engine.toSvg(-overallMaxDiameter / 2, 0).x + individualOffset;
@@ -1125,7 +1239,7 @@ function drawCenterHeightDimension(engine, start, end, dimensionX, value, bounda
 function drawTaperCenterDimensions(engine, model, labels) {
   const poles = [...model.poles].reverse(); // Bottom to top, matching drawPole().
   const maxDiameter = Math.max(...poles.flatMap(pole => [pole.Lower_D, pole.Upper_D]));
-  const offset = -40 + 8; // One 8 paper mm column inside the pole-length dimension.
+  const offset = getPoleHeightOffset(model, engine.scale) + 8;
   const dimensionX = engine.toSvg(-maxDiameter / 2, 0).x + offset;
   let bottomY = 0;
   let level = 0;
@@ -1172,7 +1286,7 @@ function drawOpeningBoxDimensions(engine, model) {
     x: -diameterPoleAtOpening / 2 - 22.7 - extension,
     y: heightOpeningAtCenter
   };
-  const individualOffset = -40; // Same reference as drawPoleDimensions().
+  const individualOffset = getPoleHeightOffset(model, engine.scale);
   const dimensionSpacing = 8; // Paper mm between the pole and opening dimensions.
   const overallMaxDiameter = Math.max(...model.poles.flatMap(pole => [pole.Lower_D, pole.Upper_D]));
   // Only the bottom pole determines whether its center-height column is needed.
@@ -1213,7 +1327,23 @@ function drawObjectHeightDimensions(engine, model, labels) {
       }
     }
   }
+  // Reserve room for four-row OHW callouts before locking the height columns.
+  let wireLeaderRight = -Infinity;
+  for (const wire of model.overHeadWire ?? []) {
+    const diameter = getPoleDiameterAtHeight(model.poles, wire.height);
+    if (!(diameter > OHW_HOOK_BAND.centerGap) || getOHWDirection(wire.fixAngle ?? 0) !== 1) continue;
+    const width = Math.max(...getOHWLeaderRows(wire).map(text => {
+      const node = engine.drawText(0, 0, text);
+      const width = node.getComputedTextLength(); node.remove(); return width;
+    }));
+    const d = OHW_HOOK_BAND;
+    const targetX = getOHWWireGeometry(diameter, wire).middle.x;
+    wireLeaderRight = Math.max(wireLeaderRight, engine.toSvg(targetX, 0).x + 16 + width + 6);
+  }
   const firstColumn = Math.max(
+    wireLeaderRight,
+    engine.origin.x + Math.max(...model.poles.map(pole => pole.Lower_D / 2)) * engine.scale +
+      getTaperLeaderColumnSpace(engine, model),
     Math.max(engine.toSvg(bounds.right, 0).x, engine.toSvg(ground.right.x, 0).x) + 12,
     leaderRight + 8 // Paper mm: room for the vertical dimension text as well.
   );
@@ -1223,11 +1353,13 @@ function drawObjectHeightDimensions(engine, model, labels) {
     const connection = type === "arm" ? getArmConnection(model.poles, object) : null;
     const upperReference = connection
       ? { x: getArmDirection(object.fixAngle) * connection.endCenter.x, y: connection.endCenter.y }
-      : { x: 0, y: object.height };
+      : { x: type === "ohw"
+        ? getPoleDiameterAtHeight(model.poles, object.height) / 2 + OHW_HOOK_BAND.thickness : 0,
+        y: object.height };
     engine.drawDimension(
       ground.right,
       upperReference,
-      "vertical", 12, label, column
+      "vertical", 12, label, column, type === "ohw" ? { endGap: 0 } : {}
     );
   });
 }
@@ -1399,23 +1531,23 @@ function getLeaderObstacles(engine) {
       }
       engine.leaderGeometryCache.set(node,segments);
     }
-    result.push(...segments);
+    result.push(...segments.map(segment => ({ ...segment, isDimension: engine.dimensionNodes?.has(node) ?? false })));
   }
   return result;
 }
 
 // Cut only a small contact gap out of the outline touched by the arrow.
 function allowLeaderContact(segments, tip) {
-  return segments.flatMap(({a,b}) => {
+  return segments.flatMap(({a,b,...metadata}) => {
     const dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy);
     if (!len) return [];
     const t=((tip.x-a.x)*dx+(tip.y-a.y)*dy)/(len*len);
     const nearest=Math.max(0,Math.min(1,t));
-    if(Math.hypot(a.x+nearest*dx-tip.x,a.y+nearest*dy-tip.y)>0.8) return [{a,b}];
+    if(Math.hypot(a.x+nearest*dx-tip.x,a.y+nearest*dy-tip.y)>0.8) return [{a,b,...metadata}];
     const lo=Math.max(0,t-0.8/len),hi=Math.min(1,t+0.8/len),parts=[];
     if(lo>0) parts.push({a,b:{x:a.x+lo*dx,y:a.y+lo*dy}});
     if(hi<1) parts.push({a:{x:a.x+hi*dx,y:a.y+hi*dy},b});
-    return parts;
+    return parts.map(part => ({ ...part, ...metadata }));
   });
 }
 
@@ -1509,6 +1641,77 @@ function drawArmLightingLeader(engine, model) {
   }
 }
 
+function getOHWLeaderRows(wire) {
+  const value = (number, divisor = 1) => Number.isFinite(number) ? format(number / divisor) : "?";
+  return [
+    `架空線: ${wire.name?.trim() || "—"}`,
+    `計算外径Ø= ${value(wire.diameter)} mm`,
+    `単位重量W= ${value(wire.weight)} kg/m`,
+    `S= ${value(wire.span, 1000)} m`
+  ];
+}
+
+// Arm annotations and H dimensions have priority; pole leaders are placed later.
+function drawOHWLeader(engine, model) {
+  const detail = OHW_HOOK_BAND;
+  for (const wire of model.overHeadWire ?? []) {
+    const diameter = getPoleDiameterAtHeight(model.poles, wire.height);
+    if (!(diameter > detail.centerGap)) continue;
+    const rows = getOHWLeaderRows(wire); // Form span mm is displayed in m.
+    const widths = rows.map(text => {
+      const probe = engine.drawText(0, 0, text);
+      const width = probe.getComputedTextLength();
+      probe.remove();
+      return width;
+    });
+    const shelfWidth = Math.max(...widths) + 2;
+    const side = getOHWDirection(wire.fixAngle ?? 0);
+    const { middle: bottom, outer } = getOHWWireGeometry(diameter, wire);
+    const saved = engine.dimensionSegments;
+    const obstacles = getLeaderObstacles(engine);
+    let placement;
+    // Exhaust both upper quadrants before trying below, then horizontal.
+    for (const up of [1, -1, 0]) {
+      for (const target of [bottom, outer]) {
+        engine.dimensionSegments = allowLeaderContact(obstacles, engine.toSvg(target.x, target.y));
+        for (const rise of (up === 0 ? [0] : [16, 24, 32, 40])) {
+          for (const outward of [side, -side]) {
+            const elbow = { x: target.x + outward * Math.max(12, rise) / engine.scale,
+              y: target.y + up * rise / engine.scale };
+            const fitted = engine.fitObjectLeader(target, elbow, rows[0], shelfWidth, rows[1], "left", {
+              lowerRows: rows.slice(1), minFactor: 1, textClearance: 2, allowDimensionCrossing: true
+            });
+            if (!engine.lastLeaderFitBlocked) { placement = { target, elbow: fitted }; break; }
+          }
+          if (placement) break;
+        }
+        if (placement) break;
+      }
+      if (placement) break;
+    }
+    engine.dimensionSegments = saved;
+    if (!placement) {
+      engine.unplacedOHWLeaders = (engine.unplacedOHWLeaders ?? 0) + 1;
+      continue;
+    }
+    const tip = engine.toSvg(placement.target.x, placement.target.y);
+    const bend = engine.toSvg(placement.elbow.x, placement.elbow.y);
+    const end = { x: bend.x + (bend.x >= tip.x ? 1 : -1) * shelfWidth, y: bend.y };
+    const x = Math.min(bend.x, end.x) + 1;
+    const boxes = rows.map((text, index) => {
+      const node = engine.drawText(x, bend.y + (index === 0 ? -2 : index * 5), text,
+        "drawing-text", { "text-anchor": "start" });
+      const box = node.getBBox();
+      return { left: box.x - 2, right: box.x + box.width + 2,
+        top: box.y - 2, bottom: box.y + box.height + 2 };
+    });
+    engine.paperLine(tip, bend);
+    engine.paperLine(bend, end);
+    engine.drawArrow(tip, Math.atan2(bend.y - tip.y, bend.x - tip.x));
+    engine.leaderAnnotations.push({ boxes, segments: [[tip, bend], [bend, end]] });
+  }
+}
+
 function drawObjectLeader(engine, model) {
   const totalHeight = model.poles.reduce((sum, pole) => sum + pole.height, 0);
   const lightingHeight = LIGHTING_HEIGHT; // Match drawLightingSchematic().
@@ -1525,7 +1728,25 @@ function drawObjectLeader(engine, model) {
     y: target.y + leaderOffset
   };
 
-  engine.drawObjectLeader(target, elbow, "灯具");
+  if (!(model.overHeadWire ?? []).length) {
+    engine.drawObjectLeader(target, elbow, "灯具");
+    return;
+  }
+  // Direct Object has lower priority than arm/OHW annotations.
+  const saved = engine.dimensionSegments;
+  engine.dimensionSegments = allowLeaderContact(getLeaderObstacles(engine), engine.toSvg(target.x, target.y));
+  let placement;
+  for (const distance of [12, 20, 28]) {
+    for (const up of [1, -1]) {
+      const candidate = { x: target.x + distance / engine.scale, y: target.y + up * distance / engine.scale };
+      const fitted = engine.fitObjectLeader(target, candidate, "灯具", 0);
+      if (!engine.lastLeaderFitBlocked) { placement = fitted; break; }
+    }
+    if (placement) break;
+  }
+  engine.dimensionSegments = saved;
+  if (placement) engine.drawLeader(target, placement, "灯具");
+  else engine.unplacedDirectObjectLeader = true;
 }
 
 // Draw Leader for Opening Part
@@ -1571,19 +1792,36 @@ function groupConnectedPoles(model) {
   return groups;
 }
 
+function getTaperLeaderRows(group) {
+  const { pole } = group.members.find(({ pole }) => pole.type === "tapered");
+  const ratio = calculateTaperRatio(pole.Lower_D, pole.Upper_D, pole.height);
+  const description = group.members.length > 1 || Number(ratio.toFixed(5)) !== 0.01
+    ? "温間スピニングテーパー" : "1/100テーパー";
+  const thickness = Number.isFinite(pole.thickness) && pole.thickness > 0 ? pole.thickness.toFixed(1) : "?";
+  return [`${description}(t${thickness})`, `(JIS G3444 ${pole.material})`];
+}
+
+// With OHW, taper leaders are placed after H columns. Reserve their measured
+// width beforehand so the columns cannot close off every candidate position.
+function getTaperLeaderColumnSpace(engine, model) {
+  if (!(model.overHeadWire ?? []).length) return -Infinity;
+  let space = -Infinity;
+  for (const group of groupConnectedPoles(model)) {
+    if (!group.members.some(({ pole }) => pole.type === "tapered")) continue;
+    for (const text of getTaperLeaderRows(group)) {
+      const node = engine.drawText(0, 0, text);
+      space = Math.max(space, node.getComputedTextLength() + 22);
+      node.remove();
+    }
+  }
+  return space;
+}
+
 function drawLeaderPoleTaperThickness(engine, model) {
   const groups = groupConnectedPoles(model);
   for (const group of groups) {
     if (!group.members.some(({pole}) => pole.type === "tapered")) continue;
-    const { pole } = group.members.find(({ pole }) => pole.type === "tapered");
-    const ratio = calculateTaperRatio(pole.Lower_D, pole.Upper_D, pole.height);
-    // Preserve the project's existing five-decimal ratio comparison for isolated poles.
-    const description = group.members.length > 1 || Number(ratio.toFixed(5)) !== 0.01
-      ? "温間スピニングテーパー" : "1/100テーパー";
-    const thicknessText = Number.isFinite(pole.thickness) && pole.thickness > 0
-      ? pole.thickness.toFixed(1) : "?";
-    const topText = `${description}(t${thicknessText})`;
-    const bottomText = `(JIS G3444 ${pole.material})`;
+    const [topText, bottomText] = getTaperLeaderRows(group);
     const leaderOffset = 12 / engine.scale;
     const savedSegments = engine.dimensionSegments;
     const obstacles = getLeaderObstacles(engine);
@@ -1678,6 +1916,17 @@ function getHorizontalDrawingBounds(model) {
     minY = Math.min(minY, ...heights);
     maxY = Math.max(maxY, ...heights);
   }
+  for (const wire of model.overHeadWire ?? []) {
+    const diameter = getPoleDiameterAtHeight(model.poles, wire.height);
+    if (!(diameter > OHW_HOOK_BAND.centerGap)) continue;
+    const d = OHW_HOOK_BAND;
+    const reach = diameter / 2 + d.thickness + d.neckLength + d.hookRadius + d.wireChord;
+    if (getOHWDirection(wire.fixAngle ?? 0) === -1) left = Math.max(left, reach);
+    else right = Math.max(right, reach);
+    const cable = getOHWWireGeometry(diameter, wire);
+    minY = Math.min(minY, cable.lowest.y, wire.height - d.height / 2);
+    maxY = Math.max(maxY, wire.height + d.height / 2);
+  }
   for (const { object } of getObjectHeightOrder(model)) maxY = Math.max(maxY, object.height);
   return { left, right, minY, maxY };
 }
@@ -1691,13 +1940,14 @@ function getSchematicPageLayout(model) {
   const columns = objectCount ? 12 + (objectCount - 1) * 8 : 0;
   const pageLeft = 10, pageRight = 200;
   const leaderSpace = 24; // Paper mm outside object geometry.
+  const taperSpace = getTaperLeaderColumnSpace(new DrawingEngine(content, { x: 0, y: 0 }, 1), model);
   const widths = scale => ({
     // Pole height dimensions extend 48 mm left of the pole, plus text clearance.
-    left: Math.max(bounds.left * scale + leaderSpace, radius * scale + 56),
+    left: Math.max(bounds.left * scale + leaderSpace, radius * scale - getPoleHeightOffset(model, scale) + 16),
     right: Math.max(
       bounds.right * scale + leaderSpace + columns,
       175 * scale + 16 + columns,
-      radius * scale + 56 + columns // Reserve space for pole specification leaders.
+      radius * scale + Math.max(56, taperSpace) + columns // Include taper text before fitting the page.
     )
   });
   const verticalScale = Math.min(170 / totalHeight,
@@ -1733,6 +1983,7 @@ function render(model) {
   // Draw Objects
   drawPole(engine, model);
   drawArm(engine, model);
+  drawOHWHookBand(engine, model);
   drawBaseplate(engine, model);
   drawOpeningBox(engine, model);
   if (model.directObjectCount > 0) {
@@ -1755,17 +2006,27 @@ function render(model) {
   // Height columns are placed afterwards so they can clear the fitted leader.
   drawDimensionArm(engine, model);
   engine.collectDimensions = false;
-  drawLeaderPoleTaperThickness(engine, model);
-  if (model.directObjectCount > 0) drawObjectLeader(engine, model);
-  drawOpeningBoxLeader(engine, model);
+  const hasOHW = (model.overHeadWire ?? []).length > 0;
+  if (!hasOHW) {
+    drawLeaderPoleTaperThickness(engine, model);
+    if (model.directObjectCount > 0) drawObjectLeader(engine, model);
+    drawOpeningBoxLeader(engine, model);
+  }
   // Reserve arm specifications before height columns and diameter callouts.
   // A short single arm otherwise loses its only usable quadrant to those lines.
   drawArmSpecificationLeader(engine, model);
-  // Straight pole callouts can move down or mirror to clear the arm reservation.
-  drawPoleLeader(engine, model);
+  if (hasOHW) drawArmLightingLeader(engine, model);
+  else drawPoleLeader(engine, model);
   engine.collectDimensions = true;
   drawObjectHeightDimensions(engine, model, heightLabels);
   engine.collectDimensions = false;
+  drawOHWLeader(engine, model);
+  if (hasOHW) {
+    if (model.directObjectCount > 0) drawObjectLeader(engine, model);
+    drawLeaderPoleTaperThickness(engine, model);
+    drawPoleLeader(engine, model);
+    drawOpeningBoxLeader(engine, model);
+  }
   // Pick diameter quadrants only after measuring the final leader positions.
   engine.deferDiameterDimensions = false;
   engine.collectDimensions = true;
@@ -1774,13 +2035,15 @@ function render(model) {
   }
   engine.pendingDiameterDimensions = [];
   engine.collectDimensions = false;
-  drawArmLightingLeader(engine, model);
+  if (!hasOHW) drawArmLightingLeader(engine, model);
 
   // engine.drawText(16, 269, `Scale ≈ 1 : ${format(1 / scale)} | Length ${format(model.Upper_D)} mm × Height ${format(model.height)} mm`, "drawing-text note");
   status.textContent = `Poles: ${model.poleCount} | Max diameter: ${format(MaxDiameter)} mm | Total height: ${format(totalHeight)} mm. Drawing scale ≈ 1 : ${format(1 / scale)}.`;
   if (engine.unplacedArmSpecificationLeader) status.textContent += " Arm specification leader: no clear position available.";
   if (engine.unplacedTaperThicknessLeader) status.textContent += " Taper thickness leader: no clear position available.";
   if (engine.unplacedStraightPoleLeader) status.textContent += " Straight pole leader: no clear position available.";
+  if (engine.unplacedDirectObjectLeader) status.textContent += " Direct Object leader: no clear position available.";
+  if (engine.unplacedOHWLeaders) status.textContent += ` ${engine.unplacedOHWLeaders} OHW leader(s): no clear position available.`;
   if (engine.unplacedArmLightingLeaders) {
     status.textContent += ` ${engine.unplacedArmLightingLeaders} arm lighting leader(s): no clear position available.`;
   }
