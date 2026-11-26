@@ -1,0 +1,11 @@
+<!doctype html><meta charset="utf-8"><base href="../../"><title>Stage 4.3 — Pole dimensions</title>
+<style>body{font:14px Arial;background:#ddd}section{display:inline-block;vertical-align:top;margin:8px}svg{background:white;width:420px;height:594px}</style>
+<h1>Stage 4.3 — Pole dimensions</h1><main></main>
+<script type="module">
+import {createProject,buildSchematicGeometry} from './schematic_Lighting_1a.js';
+import {buildPoleDimensions} from './schematic_dimensions.js';
+import {renderGeometryPreview} from './schematic_geometry_preview.js';
+const taper={type:'tapered',height:8000,lowerDiameter:165,upperDiameter:85,thickness:4};
+const cases=[['On GL','on-gl',0,[taper],750],['Embedment','embedment',1000,[taper],750],['Under GL — straight bottom','baseplate-under-gl',300,[{...taper,height:6500},{height:1650,lowerDiameter:165,thickness:4}],900],['Under GL — taper to GL','baseplate-under-gl',300,[taper],750]];
+for(const [title,type,depth,poles,openingHeight] of cases){const scene=buildSchematicGeometry(createProject({poles,installation:{type,depth}}));const dims=buildPoleDimensions(scene.pole,{openingHeight});const section=document.createElement('section');const h=document.createElement('h2');h.textContent=title;section.append(h,renderGeometryPreview(scene,document,dims));document.querySelector('main').append(section);}
+</script>

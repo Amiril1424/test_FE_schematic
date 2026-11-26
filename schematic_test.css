@@ -15,6 +15,9 @@ body {
 .pole-count-badge { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-width: 116px; height: 42px; padding: 0 16px; border: 1px solid #ccc; border-radius: 8px; white-space: nowrap; }
 .count-divider { color: #777; }
 .count-field { width: 180px; }
+.installation-type-field { width: 190px; }
+.installation-depth-field { width: 260px; }
+.installation-note { flex-basis: 100%; color: #666; }
 input, select, button { font: inherit; color: inherit; }
 .field input, .field select, .count-field select { width: 100%; min-width: 0; height: 42px; padding: 0 12px; border: 1px solid #bbb; border-radius: 8px; background: #fff; }
 select { cursor: pointer; }
@@ -79,7 +82,7 @@ input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px s
 /* Direct Object and OverHead Wire forms; visibility follows the count selector. */
 .object-count-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
 .object-step { padding: 24px 16px; border-bottom: 1px solid #ddd; }
-.do-fields { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 20px 12px; }
+.do-fields { display: grid; grid-template-columns: 2fr repeat(4, minmax(0, 1fr)); gap: 20px 12px; }
 .ohw-fields { display: grid; grid-template-columns: 2fr repeat(5, minmax(0, 1fr)); gap: 20px 12px; }
 .object-step .input-unit input { padding-right: 70px; }
 .do-step, .do-count-1 { display: none; }
@@ -163,3 +166,18 @@ input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px s
     box-shadow: none;
   }
 }
+
+/* V2 Direct Object rows. */
+.do-count-2, .do-count-3 { display: none; }
+.controls:has(#do-count option[value="1"]:checked) .do-count-0 { display: none; }
+.controls:has(#do-count option[value="1"]:checked) .do-count-1 { display: inline; }
+.controls:has(#do-count option[value="1"]:checked) #do-step-1 { display: block; }
+.controls:has(#do-count option[value="2"]:checked) .do-count-0 { display: none; }
+.controls:has(#do-count option[value="2"]:checked) .do-count-2 { display: inline; }
+.controls:has(#do-count option[value="2"]:checked) #do-step-1 { display: block; }
+.controls:has(#do-count option[value="2"]:checked) #do-step-2 { display: block; }
+.controls:has(#do-count option[value="3"]:checked) .do-count-0 { display: none; }
+.controls:has(#do-count option[value="3"]:checked) .do-count-3 { display: inline; }
+.controls:has(#do-count option[value="3"]:checked) #do-step-1 { display: block; }
+.controls:has(#do-count option[value="3"]:checked) #do-step-2 { display: block; }
+.controls:has(#do-count option[value="3"]:checked) #do-step-3 { display: block; }

@@ -1,0 +1,60 @@
+Annotation policy update
+
+Shared policy: schematic_annotation_policy.js.
+Cartesian priority Q1 (right/up), Q2 (left/up), Q3 (left/down), Q4 (right/down).
+SVG Y is reversed centrally in the quadrant definitions.
+
+Diameter: both witness origins stay on the original engineering section.
+The horizontal and vertical offsets are always equal, maintaining 45 degrees.
+Each quadrant tries paper-mm projections 18,16,14,12,10,8 before the next quadrant.
+These correspond to diagonal lengths about 25.5 to 11.3 mm.
+Text, arrows and the dimension bar move together.
+Witness lines may traverse the measured section itself; unrelated components
+and annotation obstacles are checked. The label avoids all component geometry.
+
+Leaders use the same ordered quadrants and descending nominal lengths.
+Pole anchor selection switches to the matching pole face before mirroring.
+The existing compact OHW route options (down to 4 mm horizontal projection)
+remain available within each quadrant for multi-line labels between height levels.
+Higher-priority quadrants win over a shorter line in a later quadrant.
+
+Tests: v2-quadrants.cjs checks 45 degrees, length bounds, upper Q1 and default
+Q1 leader. Existing final, content-parity, leader and 54-case dimension tests pass.
+
+Shorter-leader/text update:
+Default projection 18 -> 9 mm; diameter candidates 9,8,7,6,5,4 mm.
+Default 45-degree diagonal 25.46 -> 12.73 mm. Congested leader fallback
+maximum 32 -> 16 mm, considered only after normal candidates in all quadrants.
+Leader letter spacing 0.12 mm and additional word spacing 0.35 mm; both are
+included in measured label widths and exported SVG. Font remains 3 mm.
+
+Lower diameter and vertical leader spacing update:
+Upper diameter remains 9 mm projection. Lower diameter uses 12,11,10 mm
+projections (default diagonal 16.97 mm). Visible lower witness strokes start
+outside the measured pole envelope; original reference points remain in metadata.
+Leader row spacing is 4.6 mm. First baseline is 1.5 mm above the leader line;
+second baseline is 4 mm below it. Collision bounds use these same positions.
+Final fit may enlarge an already-fitting drawing to open vertical gaps between
+OHW levels; simply shrinking such a drawing would reduce the available gap.
+
+Moderate text spacing and downward diameter correction:
+Leader row spacing is now 4.1 mm (between the former 3.6 and 4.6 mm).
+First baseline is 1.3 mm above the rule; second baseline 3.7 mm below.
+For Q3/Q4 diameter witnesses, both reference points use the same 0.5 mm
+projected start gap, preserving equal diagonal lengths and the measured diameter.
+Q3 labels sit outside left; Q4 labels outside right. The dimension bar extends
+under the side label. Upward diameter placement is unchanged.
+
+Datum line sizing update:
+GL half-length is at least 18 paper mm and grows with object radius, text
+width and clearance. Both sides remain symmetric. Inspection text begins
+8 paper mm beyond its reference target; underline length is at least 24 mm
+and grows with measured text. Vertical dimension bundles move outward if
+necessary rather than compressing the reference line; 1 mm gaps are retained.
+
+Object-height column compaction:
+Final placement uses schematic_height_layout.js after leaders are placed. Each
+vertical span reserves its own object/leader envelope plus 5 paper mm; adjacent
+columns retain at least 8 mm. Engineering origins and dimension values stay fixed.
+Taper load-centroid labels now use the parent H index with an apostrophe, H2'=...
+without consuming another object-height index.

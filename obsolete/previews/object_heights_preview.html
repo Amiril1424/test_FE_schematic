@@ -1,0 +1,8 @@
+<!doctype html><meta charset="utf-8"><base href="../../"><title>Object heights</title><style>body{font:14px Arial;background:#ddd}svg{background:white;width:630px;height:891px}</style><h1>Stage 4.5</h1>
+<script type="module">
+import {createProject,buildSchematicGeometry} from './schematic_Lighting_1a.js';
+import {buildPoleDimensions,buildArmDimensions,buildObjectHeightDimensions} from './schematic_dimensions.js';
+import {renderGeometryPreview} from './schematic_geometry_preview.js';
+const p=createProject({poles:[{height:4000,lowerDiameter:114,thickness:4},{height:2000,lowerDiameter:165,thickness:4}],arms:[{height:4800,length:1000,diameter:60.5,thickness:3.2}],overheadWires:[{height:4500,diameter:12,weight:0.2,span:5000},{height:4000,diameter:12,weight:0.2,span:5000}],directObjects:[{height:3500,areaFront:0.24,areaSide:0.1,quantity:1}]});
+await document.fonts.ready;const s=buildSchematicGeometry(p),d=buildPoleDimensions(s.pole);document.body.append(renderGeometryPreview(s,document,d,buildArmDimensions(p,s),buildObjectHeightDimensions(p,s,d)));
+</script>

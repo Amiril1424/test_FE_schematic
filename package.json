@@ -3,6 +3,7 @@
   "private": true,
   "scripts": {
     "start": "node scripts/serve.cjs",
+    "test:v2": "node scripts/test-v2.cjs",
     "test:editor": "node tests/editor-roundtrip.cjs && node tests/editor-regression.cjs",
     "test:leaders": "node tests/leader-layout.cjs"
   },

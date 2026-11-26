@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Origins allowed to embed this app via iframe (schematic_embed.js). Space separated. -->
+    <meta name="schematic-parent-origins" content="http://localhost:5173 http://127.0.0.1:5173 https://calculationsystemkoribaliv4.netlify.app https://*.netlify.app" />
+    <title>Schematic V2 - Input and SVG Editor</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="schematic_test.css" />
+    <link rel="stylesheet" href="schematic_editor.css" />
+    <script type="module" src="schematic_editor.js"></script>
+    <script type="module" src="schematic_v2_app.js"></script>
+    <script type="module" src="schematic_embed.js"></script>
+  </head>
+  <body>
+    <div id="local-file-warning" role="alert" hidden style="padding:20px;background:#fff3cd;color:#664d03;font:16px sans-serif">
+      Halaman ini harus dibuka melalui server HTTP, bukan langsung dari folder.
+      Jalankan npm.cmd start, lalu buka
+      <a href="http://127.0.0.1:8080/schematic_v2.html">Schematic V2 melalui server lokal</a>.
+      Jika port 8080 sudah digunakan oleh server schematic, langsung buka link tersebut.
+    </div>
+    <script>
+      if (location.protocol === 'file:') {
+        document.getElementById('local-file-warning').hidden = false;
+      }
+    </script>
+    <nav style="padding:12px 20px"><strong>Schematic V2</strong> | <a href="index.html">Prototype V1</a> | <a href="final_preview.html">Contoh V2</a></nav>
+    <section class="controls" id="parameters" data-engine="v2" aria-label="Pole parameters">
+      <div class="pole-toolbar" id="pole-toolbar">
+        <span class="pole-count-badge" id="pole-count-badge">
+          <span class="count-1">1</span><span class="count-2">2</span><span class="count-3">3</span>
+          <span class="count-divider">/</span> 3 Poles
+        </span>
+        <div class="count-field">
+          <label class="visually-hidden" for="pole-count">Jumlah pole</label>
+          <select id="pole-count" name="pole-count" aria-controls="pole-step-1 pole-step-2 pole-step-3">
+            <option value="1" selected>1 Pole</option>
+            <option value="2">2 Poles</option>
+            <option value="3">3 Poles</option>
+          </select>
+        </div>
+        <div class="arm-count-controls">
+          <span class="pole-count-badge" id="arm-count-badge">
+            <span class="arm-count-0">0</span><span class="arm-count-1">1</span><span class="arm-count-2">2</span>
+            <span class="count-divider">/</span> 2 Arms
+          </span>
+          <div class="count-field">
+            <label class="visually-hidden" for="arm-count">Jumlah arm</label>
+            <select id="arm-count" name="arm-count" aria-controls="arm-step-1 arm-step-2">
+              <option value="0" selected>0 Arms</option>
+              <option value="1">1 Arm</option>
+              <option value="2">2 Arms</option>
+            </select>
+          </div>
+        </div>
+        <div class="object-count-controls">
+          <span class="pole-count-badge" id="do-count-badge">
+            <span class="do-count-0">0</span><span class="do-count-1">1</span><span class="do-count-2">2</span><span class="do-count-3">3</span>
+            <span class="count-divider">/</span> 3 Direct Objects
+          </span>
+          <div class="count-field">
+            <label class="visually-hidden" for="do-count">Jumlah Direct Object</label>
+            <select id="do-count" name="do-count" aria-controls="do-step-1 do-step-2 do-step-3">
+              <option value="0" selected>0 Direct Object</option>
+              <option value="1">1 Direct Object</option>
+              <option value="2">2 Direct Objects</option>
+              <option value="3">3 Direct Objects</option>
+            </select>
+          </div>
+        </div>
+        <div class="object-count-controls">
+          <span class="pole-count-badge" id="ohw-count-badge">
+            <span class="ohw-count-0">0</span><span class="ohw-count-1">1</span><span class="ohw-count-2">2</span><span class="ohw-count-3">3</span><span class="ohw-count-4">4</span>
+            <span class="count-divider">/</span> 4 OHW
+          </span>
+          <div class="count-field">
+            <label class="visually-hidden" for="ohw-count">Jumlah OHW</label>
+            <select id="ohw-count" name="ohw-count" aria-controls="ohw-step-1 ohw-step-2 ohw-step-3 ohw-step-4">
+              <option value="0" selected>0 OHW</option>
+              <option value="1">1 OHW</option>
+              <option value="2">2 OHW</option>
+              <option value="3">3 OHW</option>
+              <option value="4">4 OHW</option>
+            </select>
+          </div>
+        </div>
+        <div class="field installation-type-field">
+          <label for="installation-type">Installation Type</label>
+          <select id="installation-type" name="installation-type" aria-describedby="installation-note">
+            <option value="on-gl" selected>Base type on GL</option>
+            <option value="embedment">Embedment</option>
+            <option value="baseplate-under-gl">Baseplate under GL</option>
+          </select>
+        </div>
+        <div class="field installation-depth-field">
+          <label for="installation-depth">Embedment depth / depth under GL</label>
+          <div class="input-unit">
+            <input id="installation-depth" name="installation-depth" type="number" min="0" step="any" value="0" aria-describedby="installation-depth-unit installation-note" />
+            <span id="installation-depth-unit">mm</span>
+          </div>
+        </div>
+        <small id="installation-note" class="installation-note">On GL: depth diabaikan (0 mm). Pilihan lain: isi depth positif. Hasil mengikuti installation type yang dipilih.</small>
+      </div>
+
+      <section class="pole-step" id="pole-step-1" aria-labelledby="pole-title-1">
+        <header class="step-header">
+          <span class="step-number" aria-hidden="true">1</span>
+          <h2 id="pole-title-1">Step Pole 1<small>Pole specifications</small></h2>
+        </header>
+        <div class="pole-fields">
+          <div class="field">
+            <label for="pole-1-name">Pole Name</label>
+            <input id="pole-1-name" name="pole-1-name" type="text" value="Pole 1" placeholder="e.g., Pole 1" />
+          </div>
+          <div class="field">
+            <label for="pole-1-material">Material</label>
+            <select id="pole-1-material" name="pole-1-material"><option value="STK400">STK400</option><option value="STK490">STK490</option></select>
+          </div>
+          <div class="field">
+            <label for="pole-1-type">Pole Type</label>
+            <select id="pole-1-type" name="pole-1-type"><option value="straight">Straight</option><option value="tapered">Tapered</option></select>
+          </div>
+          <div class="field">
+            <label for="pole-1-diameter"><span class="straight-label">Diameter</span><span class="taper-label">Lower Diameter</span></label>
+            <div class="input-unit"><input id="pole-1-diameter" name="pole-1-diameter" type="number" value="89.1" min="0.1" step="any" aria-describedby="pole-1-diameter-unit" /><span id="pole-1-diameter-unit">mm</span></div>
+            <div class="taper-only">
+              <label for="pole-1-upper-diameter">Upper Diameter</label>
+              <div class="input-unit"><input id="pole-1-upper-diameter" name="pole-1-upper-diameter" type="number" value="89.1" min="0.1" step="any" aria-describedby="pole-1-upper-diameter-unit" /><span id="pole-1-upper-diameter-unit">mm</span></div>
+            </div>
+          </div>
+          <div class="field">
+            <label for="pole-1-thickness"><span class="straight-label">Thickness</span><span class="taper-label">Lower Thickness</span></label>
+            <div class="input-unit"><input id="pole-1-thickness" name="pole-1-thickness" type="number" value="4" min="0.1" step="any" aria-describedby="pole-1-thickness-unit" /><span id="pole-1-thickness-unit">mm</span></div>
+            <div class="taper-only">
+              <label for="pole-1-upper-thickness">Upper Thickness</label>
+              <div class="input-unit"><input id="pole-1-upper-thickness" name="pole-1-upper-thickness" type="number" value="4" min="0.1" step="any" aria-describedby="pole-1-upper-thickness-unit" /><span id="pole-1-upper-thickness-unit">mm</span></div>
+            </div>
+          </div>
+          <div class="field">
+            <label for="pole-1-height">Height</label>
+            <div class="input-unit"><input id="pole-1-height" name="pole-1-height" type="number" value="10000" min="0.1" step="any" aria-describedby="pole-1-height-unit" /><span id="pole-1-height-unit">mm</span></div>
+          </div>
+          <div class="field">
+            <label for="pole-1-quantity">Quantity</label>
+            <div class="input-unit"><input id="pole-1-quantity" name="pole-1-quantity" type="number" min="1" step="1" value="1" aria-describedby="pole-1-quantity-unit" /><span id="pole-1-quantity-unit">pcs</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="pole-step" id="pole-step-2" aria-labelledby="pole-title-2">
+        <header class="step-header">
+          <span class="step-number" aria-hidden="true">2</span>
+          <h2 id="pole-title-2">Step Pole 2<small>Pole specifications</small></h2>
+        </header>
+        <div class="pole-fields">
+          <div class="field">
+            <label for="pole-2-name">Pole Name</label>
+            <input id="pole-2-name" name="pole-2-name" type="text" placeholder="e.g., Pole 2" />
+          </div>
+          <div class="field">
+            <label for="pole-2-material">Material</label>
+            <select id="pole-2-material" name="pole-2-material"><option value="STK400">STK400</option><option value="STK490">STK490</option></select>
+          </div>
+          <div class="field">
+            <label for="pole-2-type">Pole Type</label>
+            <select id="pole-2-type" name="pole-2-type"><option value="straight">Straight</option><option value="tapered">Tapered</option></select>
+          </div>
+          <div class="field">
+            <label for="pole-2-diameter"><span class="straight-label">Diameter</span><span class="taper-label">Lower Diameter</span></label>
+            <div class="input-unit"><input id="pole-2-diameter" name="pole-2-diameter" type="number" min="0.1" step="any" aria-describedby="pole-2-diameter-unit" /><span id="pole-2-diameter-unit">mm</span></div>
+            <div class="taper-only">
+              <label for="pole-2-upper-diameter">Upper Diameter</label>
+              <div class="input-unit"><input id="pole-2-upper-diameter" name="pole-2-upper-diameter" type="number" min="0.1" step="any" aria-describedby="pole-2-upper-diameter-unit" /><span id="pole-2-upper-diameter-unit">mm</span></div>
+            </div>
+          </div>
+          <div class="field">
+            <label for="pole-2-thickness"><span class="straight-label">Thickness</span><span class="taper-label">Lower Thickness</span></label>
+            <div class="input-unit"><input id="pole-2-thickness" name="pole-2-thickness" type="number" min="0.1" step="any" aria-describedby="pole-2-thickness-unit" /><span id="pole-2-thickness-unit">mm</span></div>
+            <div class="taper-only">
+              <label for="pole-2-upper-thickness">Upper Thickness</label>
+              <div class="input-unit"><input id="pole-2-upper-thickness" name="pole-2-upper-thickness" type="number" min="0.1" step="any" aria-describedby="pole-2-upper-thickness-unit" /><span id="pole-2-upper-thickness-unit">mm</span></div>
+            </div>
+          </div>
+          <div class="field">
+            <label for="pole-2-height">Height</label>
+            <div class="input-unit"><input id="pole-2-height" name="pole-2-height" type="number" min="0.1" step="any" aria-describedby="pole-2-height-unit" /><span id="pole-2-height-unit">mm</span></div>
+          </div>
+          <div class="field">
+            <label for="pole-2-quantity">Quantity</label>
+            <div class="input-unit"><input id="pole-2-quantity" name="pole-2-quantity" type="number" min="1" step="1" value="1" aria-describedby="pole-2-quantity-unit" /><span id="pole-2-quantity-unit">pcs</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="pole-step" id="pole-step-3" aria-labelledby="pole-title-3">
+        <header class="step-header">
+          <span class="step-number" aria-hidden="true">3</span>
+          <h2 id="pole-title-3">Step Pole 3<small>Pole specifications</small></h2>
+        </header>
+        <div class="pole-fields">
+          <div class="field">
+            <label for="pole-3-name">Pole Name</label>
+            <input id="pole-3-name" name="pole-3-name" type="text" placeholder="e.g., Pole 3" />
+          </div>
+          <div class="field">
+            <label for="pole-3-material">Material</label>
+            <select id="pole-3-material" name="pole-3-material"><option value="STK400">STK400</option><option value="STK490">STK490</option></select>
+          </div>
+          <div class="field">
+            <label for="pole-3-type">Pole Type</label>
+            <select id="pole-3-type" name="pole-3-type"><option value="straight">Straight</option><option value="tapered">Tapered</option></select>
+          </div>
+          <div class="field">
+            <label for="pole-3-diameter"><span class="straight-label">Diameter</span><span class="taper-label">Lower Diameter</span></label>
+            <div class="input-unit"><input id="pole-3-diameter" name="pole-3-diameter" type="number" min="0.1" step="any" aria-describedby="pole-3-diameter-unit" /><span id="pole-3-diameter-unit">mm</span></div>
+            <div class="taper-only">
+              <label for="pole-3-upper-diameter">Upper Diameter</label>
+              <div class="input-unit"><input id="pole-3-upper-diameter" name="pole-3-upper-diameter" type="number" min="0.1" step="any" aria-describedby="pole-3-upper-diameter-unit" /><span id="pole-3-upper-diameter-unit">mm</span></div>
+            </div>
+          </div>
+          <div class="field">
+            <label for="pole-3-thickness"><span class="straight-label">Thickness</span><span class="taper-label">Lower Thickness</span></label>
+            <div class="input-unit"><input id="pole-3-thickness" name="pole-3-thickness" type="number" min="0.1" step="any" aria-describedby="pole-3-thickness-unit" /><span id="pole-3-thickness-unit">mm</span></div>
+            <div class="taper-only">
+              <label for="pole-3-upper-thickness">Upper Thickness</label>
+              <div class="input-unit"><input id="pole-3-upper-thickness" name="pole-3-upper-thickness" type="number" min="0.1" step="any" aria-describedby="pole-3-upper-thickness-unit" /><span id="pole-3-upper-thickness-unit">mm</span></div>
+            </div>
+          </div>
+          <div class="field">
+            <label for="pole-3-height">Height</label>
+            <div class="input-unit"><input id="pole-3-height" name="pole-3-height" type="number" min="0.1" step="any" aria-describedby="pole-3-height-unit" /><span id="pole-3-height-unit">mm</span></div>
+          </div>
+          <div class="field">
+            <label for="pole-3-quantity">Quantity</label>
+            <div class="input-unit"><input id="pole-3-quantity" name="pole-3-quantity" type="number" min="1" step="1" value="1" aria-describedby="pole-3-quantity-unit" /><span id="pole-3-quantity-unit">pcs</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="arm-step" id="arm-step-1" aria-labelledby="arm-title-1">
+        <header class="step-header">
+          <span class="step-number" aria-hidden="true">1</span>
+          <h2 id="arm-title-1">Arm 1<small>Arm Specification</small></h2>
+        </header>
+        <div class="arm-fields">
+          <div class="field">
+            <label for="arm-1-name">Arm Name</label>
+            <input id="arm-1-name" name="arm-1-name" type="text" placeholder="e.g., Arm 1" />
+          </div>
+          <div class="field">
+            <label for="arm-1-material">Material</label>
+            <select id="arm-1-material" name="arm-1-material"><option value="STK400">STK400</option><option value="STK490">STK490</option></select>
+          </div>
+          <div class="field">
+            <label for="arm-1-type">Arm Type</label>
+            <select id="arm-1-type" name="arm-1-type"><option value="straight">Straight</option></select>
+          </div>
+          <div class="field">
+            <label for="arm-1-diameter">Diameter</label>
+            <div class="input-unit"><input id="arm-1-diameter" name="arm-1-diameter" type="number" min="0.1" step="any" aria-describedby="arm-1-diameter-unit" /><span id="arm-1-diameter-unit">mm</span></div>
+          </div>
+          <div class="field">
+            <label for="arm-1-thickness">Thickness</label>
+            <div class="input-unit"><input id="arm-1-thickness" name="arm-1-thickness" type="number" min="0.1" step="any" aria-describedby="arm-1-thickness-unit" /><span id="arm-1-thickness-unit">mm</span></div>
+          </div>
+          <div class="field">
+            <label for="arm-1-height">Height</label>
+            <div class="input-unit"><input id="arm-1-height" name="arm-1-height" type="number" min="0.1" step="any" aria-describedby="arm-1-height-unit" /><span id="arm-1-height-unit">mm</span></div>
+          </div>
+          <div class="field">
+            <label for="arm-1-length">Arm Length</label>
+            <div class="input-unit"><input id="arm-1-length" name="arm-1-length" type="number" min="0.1" step="any" aria-describedby="arm-1-length-unit" /><span id="arm-1-length-unit">mm</span></div>
+          </div>
+          <div class="field">
+            <label for="arm-1-fix-angle">Fix Angle</label>
+            <div class="input-unit"><input id="arm-1-fix-angle" name="arm-1-fix-angle" type="number" step="any" aria-describedby="arm-1-fix-angle-unit" /><span id="arm-1-fix-angle-unit">degree</span></div>
+          </div>
+          <div class="field">
+            <label for="arm-1-vertical-angle">Vertical Angle</label>
+            <div class="input-unit"><input id="arm-1-vertical-angle" name="arm-1-vertical-angle" type="number" step="any" aria-describedby="arm-1-vertical-angle-unit" /><span id="arm-1-vertical-angle-unit">degree</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="arm-step" id="arm-step-2" aria-labelledby="arm-title-2">
+        <header class="step-header">
+          <span class="step-number" aria-hidden="true">2</span>
+          <h2 id="arm-title-2">Arm 2<small>Arm Specification</small></h2>
+        </header>
+        <div class="arm-fields">
+          <div class="field">
+            <label for="arm-2-name">Arm Name</label>
+            <input id="arm-2-name" name="arm-2-name" type="text" placeholder="e.g., Arm 2" />
+          </div>
+          <div class="field">
+            <label for="arm-2-material">Material</label>
+            <select id="arm-2-material" name="arm-2-material"><option value="STK400">STK400</option><option value="STK490">STK490</option></select>
+          </div>
+          <div class="field">
+            <label for="arm-2-type">Arm Type</label>
+            <select id="arm-2-type" name="arm-2-type"><option value="straight">Straight</option></select>
+          </div>
+          <div class="field">
+            <label for="arm-2-diameter">Diameter</label>
+            <div class="input-unit"><input id="arm-2-diameter" name="arm-2-diameter" type="number" min="0.1" step="any" aria-describedby="arm-2-diameter-unit" /><span id="arm-2-diameter-unit">mm</span></div>
+          </div>
+          <div class="field">
+            <label for="arm-2-thickness">Thickness</label>
+            <div class="input-unit"><input id="arm-2-thickness" name="arm-2-thickness" type="number" min="0.1" step="any" aria-describedby="arm-2-thickness-unit" /><span id="arm-2-thickness-unit">mm</span></div>
+          </div>
+          <div class="field">
+            <label for="arm-2-height">Height</label>
+            <div class="input-unit"><input id="arm-2-height" name="arm-2-height" type="number" min="0.1" step="any" aria-describedby="arm-2-height-unit" /><span id="arm-2-height-unit">mm</span></div>
+          </div>
+          <div class="field">
+            <label for="arm-2-length">Arm Length</label>
+            <div class="input-unit"><input id="arm-2-length" name="arm-2-length" type="number" min="0.1" step="any" aria-describedby="arm-2-length-unit" /><span id="arm-2-length-unit">mm</span></div>
+          </div>
+          <div class="field">
+            <label for="arm-2-fix-angle">Fix Angle</label>
+            <div class="input-unit"><input id="arm-2-fix-angle" name="arm-2-fix-angle" type="number" step="any" aria-describedby="arm-2-fix-angle-unit" /><span id="arm-2-fix-angle-unit">degree</span></div>
+          </div>
+          <div class="field">
+            <label for="arm-2-vertical-angle">Vertical Angle</label>
+            <div class="input-unit"><input id="arm-2-vertical-angle" name="arm-2-vertical-angle" type="number" step="any" aria-describedby="arm-2-vertical-angle-unit" /><span id="arm-2-vertical-angle-unit">degree</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="object-step do-step" id="do-step-1" aria-labelledby="do-title-1">
+        <header class="step-header">
+          <span class="step-number" aria-hidden="true">1</span>
+          <h2 id="do-title-1">Direct Object 1<small>Direct Object specifications</small></h2>
+        </header>
+        <div class="do-fields">
+          <div class="field">
+            <label for="do-1-name">Name</label>
+            <input id="do-1-name" name="do-1-name" type="text" placeholder="e.g., Direct Object 1" />
+          </div>
+          <div class="field"><label for="do-1-area-front">Area Front</label><div class="input-unit"><input id="do-1-area-front" name="do-1-area-front" type="number" min="0" step="any" aria-describedby="do-1-area-front-unit" /><span id="do-1-area-front-unit">m&sup2;</span></div></div>
+          <div class="field"><label for="do-1-area-side">Area Side</label><div class="input-unit"><input id="do-1-area-side" name="do-1-area-side" type="number" min="0" step="any" aria-describedby="do-1-area-side-unit" /><span id="do-1-area-side-unit">m&sup2;</span></div></div>
+          <div class="field">
+            <label for="do-1-height">Height</label>
+            <div class="input-unit"><input id="do-1-height" name="do-1-height" type="number" min="0" step="any" aria-describedby="do-1-height-unit" /><span id="do-1-height-unit">mm</span></div>
+          </div>
+          <div class="field">
+            <label for="do-1-quantity">Quantity</label>
+            <div class="input-unit"><input id="do-1-quantity" name="do-1-quantity" type="number" min="1" step="1" value="1" aria-describedby="do-1-quantity-unit" /><span id="do-1-quantity-unit">pcs</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="object-step do-step" id="do-step-2" aria-labelledby="do-title-2">
+        <header class="step-header">
+          <span class="step-number" aria-hidden="true">2</span>
+          <h2 id="do-title-2">Direct Object 2<small>Direct Object specifications</small></h2>
+        </header>
+        <div class="do-fields">
+          <div class="field">
+            <label for="do-2-name">Name</label>
+            <input id="do-2-name" name="do-2-name" type="text" placeholder="e.g., Direct Object 2" />
+          </div>
+          <div class="field"><label for="do-2-area-front">Area Front</label><div class="input-unit"><input id="do-2-area-front" name="do-2-area-front" type="number" min="0" step="any" aria-describedby="do-2-area-front-unit" /><span id="do-2-area-front-unit">m&sup2;</span></div></div>
+          <div class="field"><label for="do-2-area-side">Area Side</label><div class="input-unit"><input id="do-2-area-side" name="do-2-area-side" type="number" min="0" step="any" aria-describedby="do-2-area-side-unit" /><span id="do-2-area-side-unit">m&sup2;</span></div></div>
+          <div class="field">
+            <label for="do-2-height">Height</label>
+            <div class="input-unit"><input id="do-2-height" name="do-2-height" type="number" min="0" step="any" aria-describedby="do-2-height-unit" /><span id="do-2-height-unit">mm</span></div>
+          </div>
+          <div class="field">
+            <label for="do-2-quantity">Quantity</label>
+            <div class="input-unit"><input id="do-2-quantity" name="do-2-quantity" type="number" min="1" step="1" value="1" aria-describedby="do-2-quantity-unit" /><span id="do-2-quantity-unit">pcs</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="object-step do-step" id="do-step-3" aria-labelledby="do-title-3">
+        <header class="step-header">
+          <span class="step-number" aria-hidden="true">3</span>
+          <h2 id="do-title-3">Direct Object 3<small>Direct Object specifications</small></h2>
+        </header>
+        <div class="do-fields">
+          <div class="field">
+            <label for="do-3-name">Name</label>
+            <input id="do-3-name" name="do-3-name" type="text" placeholder="e.g., Direct Object 3" />
+          </div>
+          <div class="field"><label for="do-3-area-front">Area Front</label><div class="input-unit"><input id="do-3-area-front" name="do-3-area-front" type="number" min="0" step="any" aria-describedby="do-3-area-front-unit" /><span id="do-3-area-front-unit">m&sup2;</span></div></div>
+          <div class="field"><label for="do-3-area-side">Area Side</label><div class="input-unit"><input id="do-3-area-side" name="do-3-area-side" type="number" min="0" step="any" aria-describedby="do-3-area-side-unit" /><span id="do-3-area-side-unit">m&sup2;</span></div></div>
+          <div class="field">
+            <label for="do-3-height">Height</label>
+            <div class="input-unit"><input id="do-3-height" name="do-3-height" type="number" min="0" step="any" aria-describedby="do-3-height-unit" /><span id="do-3-height-unit">mm</span></div>
+          </div>
+          <div class="field">
+            <label for="do-3-quantity">Quantity</label>
+            <div class="input-unit"><input id="do-3-quantity" name="do-3-quantity" type="number" min="1" step="1" value="1" aria-describedby="do-3-quantity-unit" /><span id="do-3-quantity-unit">pcs</span></div>
+          </div>
+        </div>
+      </section>
+
+<section class="object-step ohw-step" id="ohw-step-1" aria-labelledby="ohw-title-1">
+        <header class="step-header">
+          <span class="step-number" aria-hidden="true">1</span>
+          <h2 id="ohw-title-1">OHW 1<small>OHW specifications</small></h2>
+        </header>
+        <div class="ohw-fields">
+          <div class="field">
+            <label for="ohw-1-name">Name</label>
+            <input id="ohw-1-name" name="ohw-1-name" type="text" placeholder="e.g., OHW 1" />
+          </div>
+          <div class="field">
+            <label for="ohw-1-weight">Weight</label>
+            <div class="input-unit"><input id="ohw-1-weight" name="ohw-1-weight" type="number" min="0" step="any" aria-describedby="ohw-1-weight-unit" /><span id="ohw-1-weight-unit">kg/m</span></div>
+          </div>
+          <div class="field">
+            <label for="ohw-1-diameter">Diameter</label>
+            <div class="input-unit"><input id="ohw-1-diameter" name="ohw-1-diameter" type="number" min="0" step="any" aria-describedby="ohw-1-diameter-unit" /><span id="ohw-1-diameter-unit">mm</span></div>
+          </div>
+          <div class="field">
+            <label for="ohw-1-height">Height</label>
+            <div class="input-unit"><input id="ohw-1-height" name="ohw-1-height" type="number" min="0" step="any" aria-describedby="ohw-1-height-unit" /><span id="ohw-1-height-unit">mm</span></div>
+          </div>
+          <div class="field">
+            <label for="ohw-1-span">Span</label>
+            <div class="input-unit"><input id="ohw-1-span" name="ohw-1-span" type="number" min="0" step="any" aria-describedby="ohw-1-span-unit" /><span id="ohw-1-span-unit">mm</span></div>
+          </div>
+          <div class="field">
+            <label for="ohw-1-fix-angle">Fix Angle</label>
+            <div class="input-unit"><input id="ohw-1-fix-angle" name="ohw-1-fix-angle" type="number" min="0" max="360" step="any" aria-describedby="ohw-1-fix-angle-unit" /><span id="ohw-1-fix-angle-unit">degree</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="object-step ohw-step" id="ohw-step-2" aria-labelledby="ohw-title-2">
+        <header class="step-header">
+          <span class="step-number" aria-hidden="true">2</span>
+          <h2 id="ohw-title-2">OHW 2<small>OHW specifications</small></h2>
+        </header>
+        <div class="ohw-fields">
+          <div class="field">
+            <label for="ohw-2-name">Name</label>
+            <input id="ohw-2-name" name="ohw-2-name" type="text" placeholder="e.g., OHW 2" />
+          </div>
+          <div class="field">
+            <label for="ohw-2-weight">Weight</label>
+            <div class="input-unit"><input id="ohw-2-weight" name="ohw-2-weight" type="number" min="0" step="any" aria-describedby="ohw-2-weight-unit" /><span id="ohw-2-weight-unit">kg/m</span></div>
+          </div>
+          <div class="field">
+            <label for="ohw-2-diameter">Diameter</label>
+            <div class="input-unit"><input id="ohw-2-diameter" name="ohw-2-diameter" type="number" min="0" step="any" aria-describedby="ohw-2-diameter-unit" /><span id="ohw-2-diameter-unit">mm</span></div>
+          </div>
+          <div class="field">
+            <label for="ohw-2-height">Height</label>
+            <div class="input-unit"><input id="ohw-2-height" name="ohw-2-height" type="number" min="0" step="any" aria-describedby="ohw-2-height-unit" /><span id="ohw-2-height-unit">mm</span></div>
+          </div>
+          <div class="field">
+            <label for="ohw-2-span">Span</label>
+            <div class="input-unit"><input id="ohw-2-span" name="ohw-2-span" type="number" min="0" step="any" aria-describedby="ohw-2-span-unit" /><span id="ohw-2-span-unit">mm</span></div>
+          </div>
+          <div class="field">
+            <label for="ohw-2-fix-angle">Fix Angle</label>
+            <div class="input-unit"><input id="ohw-2-fix-angle" name="ohw-2-fix-angle" type="number" min="0" max="360" step="any" aria-describedby="ohw-2-fix-angle-unit" /><span id="ohw-2-fix-angle-unit">degree</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="object-step ohw-step" id="ohw-step-3" aria-labelledby="ohw-title-3">
+        <header class="step-header">
+          <span class="step-number" aria-hidden="true">3</span>
+          <h2 id="ohw-title-3">OHW 3<small>OHW specifications</small></h2>
+        </header>
+        <div class="ohw-fields">
+          <div class="field">
+            <label for="ohw-3-name">Name</label>
+            <input id="ohw-3-name" name="ohw-3-name" type="text" placeholder="e.g., OHW 3" />
+          </div>
+          <div class="field">
+            <label for="ohw-3-weight">Weight</label>
+            <div class="input-unit"><input id="ohw-3-weight" name="ohw-3-weight" type="number" min="0" step="any" aria-describedby="ohw-3-weight-unit" /><span id="ohw-3-weight-unit">kg/m</span></div>
+          </div>
+          <div class="field">
+            <label for="ohw-3-diameter">Diameter</label>
+            <div class="input-unit"><input id="ohw-3-diameter" name="ohw-3-diameter" type="number" min="0" step="any" aria-describedby="ohw-3-diameter-unit" /><span id="ohw-3-diameter-unit">mm</span></div>
+          </div>
+          <div class="field">
+            <label for="ohw-3-height">Height</label>
+            <div class="input-unit"><input id="ohw-3-height" name="ohw-3-height" type="number" min="0" step="any" aria-describedby="ohw-3-height-unit" /><span id="ohw-3-height-unit">mm</span></div>
+          </div>
+          <div class="field">
+            <label for="ohw-3-span">Span</label>
+            <div class="input-unit"><input id="ohw-3-span" name="ohw-3-span" type="number" min="0" step="any" aria-describedby="ohw-3-span-unit" /><span id="ohw-3-span-unit">mm</span></div>
+          </div>
+          <div class="field">
+            <label for="ohw-3-fix-angle">Fix Angle</label>
+            <div class="input-unit"><input id="ohw-3-fix-angle" name="ohw-3-fix-angle" type="number" min="0" max="360" step="any" aria-describedby="ohw-3-fix-angle-unit" /><span id="ohw-3-fix-angle-unit">degree</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="object-step ohw-step" id="ohw-step-4" aria-labelledby="ohw-title-4">
+        <header class="step-header">
+          <span class="step-number" aria-hidden="true">4</span>
+          <h2 id="ohw-title-4">OHW 4<small>OHW specifications</small></h2>
+        </header>
+        <div class="ohw-fields">
+          <div class="field">
+            <label for="ohw-4-name">Name</label>
+            <input id="ohw-4-name" name="ohw-4-name" type="text" placeholder="e.g., OHW 4" />
+          </div>
+          <div class="field">
+            <label for="ohw-4-weight">Weight</label>
+            <div class="input-unit"><input id="ohw-4-weight" name="ohw-4-weight" type="number" min="0" step="any" aria-describedby="ohw-4-weight-unit" /><span id="ohw-4-weight-unit">kg/m</span></div>
+          </div>
+          <div class="field">
+            <label for="ohw-4-diameter">Diameter</label>
+            <div class="input-unit"><input id="ohw-4-diameter" name="ohw-4-diameter" type="number" min="0" step="any" aria-describedby="ohw-4-diameter-unit" /><span id="ohw-4-diameter-unit">mm</span></div>
+          </div>
+          <div class="field">
+            <label for="ohw-4-height">Height</label>
+            <div class="input-unit"><input id="ohw-4-height" name="ohw-4-height" type="number" min="0" step="any" aria-describedby="ohw-4-height-unit" /><span id="ohw-4-height-unit">mm</span></div>
+          </div>
+          <div class="field">
+            <label for="ohw-4-span">Span</label>
+            <div class="input-unit"><input id="ohw-4-span" name="ohw-4-span" type="number" min="0" step="any" aria-describedby="ohw-4-span-unit" /><span id="ohw-4-span-unit">mm</span></div>
+          </div>
+          <div class="field">
+            <label for="ohw-4-fix-angle">Fix Angle</label>
+            <div class="input-unit"><input id="ohw-4-fix-angle" name="ohw-4-fix-angle" type="number" min="0" max="360" step="any" aria-describedby="ohw-4-fix-angle-unit" /><span id="ohw-4-fix-angle-unit">degree</span></div>
+          </div>
+        </div>
+      </section>
+    </section>
+    <main class="workspace">
+      <div id="editor-toolbar" class="editor-toolbar" hidden>
+        <button id="edit-schematic" type="button" disabled>Edit Schematic</button>
+        <button id="regenerate-schematic" type="button">Generate Ulang</button>
+        <button id="save-project" type="button" disabled>Save Project</button>
+        <button id="open-project" type="button">Open Project</button>
+        <button id="download-svg" type="button" disabled>Download SVG</button>
+        <input id="project-file" type="file" accept=".json,application/json" hidden />
+        <span id="editor-status" role="status" aria-live="polite"></span>
+      </div>
+      <p id="status" role="status" aria-live="polite"></p>
+      <svg id="drawing" class="canvas-a4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 210 297" role="img" aria-labelledby="drawing-title drawing-description">
+        <title id="drawing-title">A4 Pole Schematic</title>
+        <desc id="drawing-description">Pole schematic drawing with parametric dimensions.</desc>
+        <g id="drawing-content"></g>
+      </svg>
+      <div id="edited-preview" hidden></div>
+    </main>
+    <dialog id="schematic-editor-dialog" aria-labelledby="editor-dialog-title">
+      <header class="editor-dialog-header">
+        <strong id="editor-dialog-title">Edit Schematic</strong>
+        <span>Edit teks/garis secara manual. Menggeser grup juga menggeser panahnya.</span>
+        <button id="apply-schematic" type="button" disabled>Apply to Schematic</button>
+        <button id="cancel-schematic" type="button">Cancel</button>
+      </header>
+      <p id="editor-loading" role="status">Memuat editor...</p>
+      <iframe id="svg-editor-frame" title="SVG-Edit schematic editor"></iframe>
+    </dialog>
+  </body>
+</html>

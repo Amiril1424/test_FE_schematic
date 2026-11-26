@@ -1,0 +1,16 @@
+<!doctype html><meta charset="utf-8"><base href="../../"><title>Stage 5–6</title><style>body{font:14px Arial;background:#ddd}section{display:inline-block;vertical-align:top;margin:8px}svg{width:630px;height:891px;background:white}pre{max-width:630px;white-space:pre-wrap}</style><h1>Stage 5–6 — leaders and dimensions</h1><main></main>
+<script type="module">
+import{createProject,buildSchematicGeometry}from'./schematic_Lighting_1a.js';
+import{buildPoleDimensions,buildArmDimensions,buildObjectHeightDimensions}from'./schematic_dimensions.js';
+import{renderGeometryPreview}from'./schematic_geometry_preview.js';
+import{buildLeaderRequests,layoutSchematicLeaders}from'./schematic_leaders.js';
+await document.fonts.ready;
+for(const [name,length,pair,taper]of[['Short single',180,false,false],['Short pair',180,true,true],['Long arm and wires',1000,false,true]]){
+const arm={height:7000,length,diameter:60.5,thickness:3.2,verticalAngle:5};
+const project=createProject({poles:[{height:8000,type:taper?'tapered':'straight',lowerDiameter:165,upperDiameter:85,thickness:4}],arms:pair?[arm,{...arm,fixAngle:180}]:[arm],directObjects:[{name:'Box',height:3000,areaFront:0.24,areaSide:0.1,quantity:1}],overheadWires:[{name:'DV3.2-2C',height:6000,diameter:11.5,weight:0.19,span:5000},{name:'Wire 2',height:5000,diameter:12,weight:0.3,span:3000,fixAngle:180}]});
+const scene=buildSchematicGeometry(project),pd=buildPoleDimensions(scene.pole),svg=renderGeometryPreview(scene,document,pd,buildArmDimensions(project,scene),buildObjectHeightDimensions(project,scene,pd));
+const section=document.createElement('section'),title=document.createElement('h2');title.textContent=name;section.append(title,svg);document.querySelector('main').append(section);
+const requests=buildLeaderRequests(project,scene,svg.engineeringTransform),result=layoutSchematicLeaders(svg,requests,document);svg.dataset.requestCount=requests.length;
+const status=document.createElement('pre');status.textContent=result.issues.length?JSON.stringify(result.issues,null,2):`All ${result.placed.length} leaders placed; dimension shift ${result.dimensionShift} mm`;section.append(status);
+}
+</script>

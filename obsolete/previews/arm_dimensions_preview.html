@@ -1,0 +1,11 @@
+<!doctype html><meta charset="utf-8"><base href="../../"><title>Arm dimensions</title><style>body{font:14px Arial;background:#ddd}section{display:inline-block;margin:8px}svg{width:400px;height:566px;background:white}</style><h1>Stage 4.4</h1><main></main>
+<script type="module">
+import {createProject,buildSchematicGeometry} from './schematic_Lighting_1a.js';
+import {buildArmDimensions} from './schematic_dimensions.js';
+import {renderGeometryPreview} from './schematic_geometry_preview.js';
+await document.fonts.ready;
+for(const [name,length,heights] of [['Long',1000,[4000]],['Short pair',180,[4900,4900]],['Different heights',180,[4800,3000]],['Below top',1000,[3000,3000]]]){
+const project=createProject({poles:[{height:5000,lowerDiameter:165,thickness:4}],arms:heights.map((height,i)=>({height,length,diameter:60.5,thickness:3.2,verticalAngle:5,fixAngle:i?180:0}))});
+const scene=buildSchematicGeometry(project),dims=buildArmDimensions(project,scene);const section=document.createElement('section');const title=document.createElement('h2');title.textContent=name;section.append(title,renderGeometryPreview(scene,document,null,dims));document.querySelector('main').append(section);
+}
+</script>

@@ -1,0 +1,9 @@
+﻿<!doctype html><meta charset="utf-8"><title>Final A4 SVG</title><style>body{font:14px Arial;background:#ddd}section{display:inline-block;vertical-align:top;margin:8px}svg{background:white;width:630px;height:891px}pre{max-width:630px;white-space:pre-wrap}</style><h1>Stages 7–8 — final A4 SVG</h1><main></main>
+<script type="module">
+import{createProject}from'./schematic_Lighting_1a.js';import{generateSchematicSVG}from'./schematic_final.js';
+for(const [name,type,length,pair]of[['Short single','on-gl',180,false],['Short pair','embedment',180,true],['Long arm','baseplate-under-gl',2500,false]]){
+ const arm={height:7000,length,diameter:60.5,thickness:3.2,verticalAngle:5};
+ const p=createProject({installation:{type,depth:type==='on-gl'?0:300},poles:[{type:'tapered',height:8000,lowerDiameter:165,upperDiameter:85,thickness:4}],arms:pair?[arm,{...arm,fixAngle:180}]:[arm],directObjects:[{name:'Box',height:3000,areaFront:0.24,areaSide:0.1,quantity:1}],overheadWires:[{name:'DV3.2-2C',height:6000,diameter:11.5,weight:0.19,span:5000},{name:'Wire 2',height:5000,diameter:12,weight:0.3,span:3000,fixAngle:180}]});
+ const result=await generateSchematicSVG(p,document);const section=document.createElement('section'),h=document.createElement('h2'),status=document.createElement('pre'),button=document.createElement('button');h.textContent=name;status.textContent=JSON.stringify(result.report,null,2);button.textContent='Download SVG';button.onclick=()=>{const url=URL.createObjectURL(new Blob([result.svgString],{type:'image/svg+xml'}));const a=document.createElement('a');a.href=url;a.download=`${type}-schematic.svg`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};section.append(h,button,result.svg,status);document.querySelector('main').append(section);
+}
+</script>

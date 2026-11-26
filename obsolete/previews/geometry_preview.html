@@ -1,0 +1,17 @@
+<!doctype html><meta charset="utf-8"><base href="../../"><title>V2 Geometry Preview</title>
+<style>body{font:14px sans-serif;background:#ddd}section{display:inline-block;vertical-align:top;margin:12px}svg{background:white;width:420px;height:594px}pre{max-width:420px;white-space:pre-wrap}</style>
+<h1>V2 — Geometry only</h1><div id="previews"></div>
+<script type="module">
+import {createProject,buildSchematicGeometry} from './schematic_Lighting_1a.js';
+import {renderGeometryPreview} from './schematic_geometry_preview.js';
+for(const [index,type] of ['on-gl','embedment','baseplate-under-gl'].entries()) {
+ const project=createProject({installation:{type,depth:type==='on-gl'?0:1000},
+ poles:[{height:6000,type:'tapered',lowerDiameter:165,upperDiameter:85,thickness:4}],
+ arms:[{height:5000,length:1000,diameter:76.3,thickness:3.2,verticalAngle:5}],
+ directObjects:[{height:3000,areaFront:0.24,areaSide:0.1,quantity:index+1}],
+ overheadWires:[{height:4000,diameter:12,weight:0.19,span:5000,fixAngle:180}]});
+ const scene=buildSchematicGeometry(project), section=document.createElement('section');
+ const title=document.createElement('h2');title.textContent=type;section.append(title,renderGeometryPreview(scene,document));
+ const issues=document.createElement('pre');issues.textContent=JSON.stringify(scene.issues);section.append(issues);document.querySelector('#previews').append(section);
+}
+</script>

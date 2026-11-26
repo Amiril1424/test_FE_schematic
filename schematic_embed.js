@@ -74,8 +74,11 @@
       poles = [],
       arms = [],
       directObjects = [],
-      overHeadWires = []
+      overHeadWires = payload.overheadWires || []
     } = payload;
+
+    setField("installation-type", payload.installation?.type);
+    setField("installation-depth", payload.installation?.depth);
 
     // Pole count
     const poleCount = Math.min(3, Math.max(1, poles.length || 1));
@@ -111,14 +114,16 @@
       setField(`arm-${i}-vertical-angle`, a.verticalAngle ?? 0);
     });
 
-    // Direct Object count
-    const doCount = Math.min(1, Math.max(0, directObjects.length));
-    setField("do-count", String(doCount));
-
-    directObjects.slice(0, 1).forEach((d) => {
-      setField("do-1-name", d.name ?? "Direct Object");
-      setField("do-1-height", d.height ?? d.H);
-      setField("do-1-quantity", d.quantity ?? 1);
+    // Respect the count supported by the current form (V1/V2).
+    const maxObjects = Math.max(...[...document.getElementById('do-count').options].map(o=>Number(o.value)));
+    setField('do-count', String(Math.min(maxObjects, directObjects.length)));
+    directObjects.slice(0, maxObjects).forEach((d, index) => {
+      const prefix = `do-${index+1}`;
+      setField(`${prefix}-name`, d.name ?? 'Direct Object');
+      setField(`${prefix}-height`, d.height ?? d.H);
+      setField(`${prefix}-quantity`, d.quantity ?? 1);
+      setField(`${prefix}-area-front`, d.areaFront);
+      setField(`${prefix}-area-side`, d.areaSide);
     });
 
     // OHW count
@@ -137,7 +142,7 @@
   }
 
   // Handle messages from parent React app
-  window.addEventListener("message", (event) => {
+  window.addEventListener("message", async (event) => {
     if (!isOriginAllowed(event.origin)) return;
     trustedOrigin = event.origin;
 
@@ -160,10 +165,7 @@
         try {
           applyParametersToForm(payload);
           const replaceManual = Boolean(payload?.replaceManualEdit);
-          let result = host.regenerate({ replaceManualEdit: replaceManual });
-          if (replaceManual) {
-            result = host.regenerate({ replaceManualEdit: true });
-          }
+          const result = await host.regenerate({ replaceManualEdit: replaceManual });
 
           const snapshot = host.getSnapshot();
           if (result.blocked) {
@@ -181,7 +183,7 @@
             return;
           }
 
-          if (!result.generated && !snapshot.generatedSvg) {
+          if (!result.generated) {
             postToParent({
               version: 1,
               type: "SCHEMATIC_ERROR",
@@ -216,9 +218,9 @@
         try {
           const snap = host.getSnapshot();
           if (!snap.generatedSvg) {
-            host.regenerate({ replaceManualEdit: true });
+            await host.regenerate({ replaceManualEdit: true });
           }
-          host.openEditor();
+          await host.openEditor();
         } catch (err) {
           postToParent({
             version: 1,

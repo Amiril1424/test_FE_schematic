@@ -1,0 +1,50 @@
+ACTIVE FILE MAP
+
+Current application (V1 form/editor)
+  index.html                Active HTML parameter form
+  schematic_test.js         V1 engine still used by the form
+  schematic_test.css        Form/drawing stylesheet
+  schematic_editor.js/css   Editor lifecycle, project persistence and styles
+  editor.html              SVG-Edit host
+  editor_bridge.js          SVG-Edit communication bridge
+  schematic_embed.js        Parent iframe/React message bridge
+  vendor/svgedit/           Local SVG-Edit distribution
+
+V2 public integration entry points
+  schematic_v2.html         V2 parameter form + manual SVG editor
+  schematic_v2_app.js       Form adapter, async generation and editor lifecycle events
+  schematic_Lighting_1a.js  createProject, validateProject, readProjectFromForm,
+                           engineering coordinates and geometry assembly
+  schematic_final.js        generateSchematicSVG(project, document)
+                           -> {svg, svgString, report}
+  final_preview.html        Current final V2 preview with sample input
+
+V2 internal dependencies (all active; deploy them with the entry points)
+  schematic_annotation_policy.js
+  schematic_reference_geometry.js
+  schematic_dimensions.js
+  schematic_dimension_renderer.js
+  schematic_dimension_layout.js
+  schematic_diameter_layout.js
+  schematic_geometry_preview.js
+  schematic_reference_renderer.js
+  schematic_leaders.js
+  schematic_height_layout.js
+
+Development / verification
+  scripts/                 Local HTTP server and test runner
+  tests/                   Unit/browser regression tests
+  docs/                    Engineering rules and integration documentation
+  obsolete/previews/       Superseded stage demos; retained as regression fixtures
+  test-results/            Generated test artifacts; not application dependencies
+  node_modules/            Installed development dependencies; do not copy to deployment
+  package.json/lock        Reproducible scripts/dependencies
+  netlify.toml             Hosting configuration
+
+Important
+  V2 form/editor: /schematic_v2.html. V1 remains available at /index.html.
+  Project JSON records engine v1/v2; open it on its matching page.
+  Import V2 as ES modules rather than copying individual functions into React.
+  Start the server with npm.cmd start; run npm.cmd run test:v2 for V2 checks.
+  Archived HTML demos can be omitted from a production-only bundle, but are
+  required in the repository when running the existing regression tests.

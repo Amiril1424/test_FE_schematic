@@ -1,0 +1,29 @@
+﻿STAGE 4.8 REVIEW — 2026-11-26
+
+Scope: version-current regression, not proof that all possible engineering inputs fit.
+54 browser-rendered combinations: three installations; one/two pole sections;
+DO quantity 1/2/3; paired left/right arms; lengths 180/2500; angles -5/0/5;
+OHW sharing arm elevation and a separate lower OHW; different automatic scales.
+Assertions: projected arm values, equal-height L labels, merged H references,
+box count, all expected dimension labels present, paper font size, finite bounds.
+Result: 54 passed numerical/presence assertions; zero reported label-space issues.
+9 existing preview fixtures also passed, plus pole and object-height unit tests.
+Observed local build+render timing: average 2.56 ms, maximum 6.30 ms.
+These timings exclude browser startup, fonts loading and paint; not a production benchmark.
+Machine-readable results: test-results/stage4-matrix.json (generated/ignored).
+Representative screenshot: test-results/stage4-matrix.png (generated/ignored).
+
+Deferred stage 4.6 items for FINAL PREVIEW acceptance:
+- Collision checking against actual object geometry is incomplete.
+- Arrow vs extension vs dimension-line obstacle roles are not yet separated.
+- Short vertical dimensions need a complete outside-text/arrow policy.
+- Shifting labels alone does not guarantee clear association with their dimension.
+- Final layout must check all marks against paper edges and rebuild after scale changes.
+- Leader presence/collisions cannot be assessed until the leader stage exists.
+- Some short-arm scenarios report arm-rib-clearance: preserve this diagnostic;
+  no claim that the rib geometry fits in those cases. Dimension rendering still passes.
+- Numerical obstacle reports do not prove zero visual collisions. Representative
+  render inspected; remaining cases are browser assertions, not individual visual approvals.
+
+User acceptance: retain these limits for final schematic evaluation; new cases
+may be corrected in a following version. No leader work added in stage 4.8.

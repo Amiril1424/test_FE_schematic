@@ -1,0 +1,26 @@
+HISTORICAL NOTES. See v2-content-parity.txt for the 2026-11-26 update.
+Leaders now avoid dimension crossings; missing reference content is restored.
+The left dimension bundle moves uniformly in 8 mm steps, up to 32 mm.
+
+STAGE 5–6 INITIAL IMPLEMENTATION
+Module: schematic_leaders.js. Preview: obsolete/previews/leaders_preview.html.
+Stage 5 samples visible SVG geometry in paper coordinates once per placement pass,
+collects dimension/text obstacles, and caches text measurements across retry passes.
+Stage 6 priorities: arm specifications, arm lighting, OHW, Direct Object, pole.
+Arm specifications group matching height/diameter/thickness/material; alternative
+arm anchors are available. OHW uses the real R250 cable arc and exact supplied text.
+Pole anchors can move along their own segment and mirror left/right.
+Candidates prefer above then below; line crossings with dimension lines allowed,
+text boxes cannot overlap dimension obstacles. Bounded 0/4/8 mm lane expansion.
+Failures are returned in issues and displayed in the preview.
+
+Verification: three combined fixtures placed 6/7/6 leaders; the dense short-pair
+fixture required an 8 mm dimension shift. Deliberately blocked fixture reports an
+issue. Existing 9 dimension preview fixtures and 54-case stage-4 matrix still pass.
+
+Limits for final review: curve obstacles are conservatively sampled at 2 paper mm;
+search is bounded, not a guarantee for all inputs. Dimension-line vs arrow roles
+remain shared in current renderer. Lane expansion is a provisional renderer-based
+operation and requires broader final page-edge/annotation review. Opening/cross-
+section leaders are not included because their V2 geometry/content is not built.
+This is an isolated V2 preview, not a replacement of the main legacy application.

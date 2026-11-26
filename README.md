@@ -39,8 +39,13 @@ Keep Git tags when cloning: the editor regression test compares object outlines 
 
 ## Team integration
 
+Current file/dependency map: [docs/integration-files.txt](docs/integration-files.txt).
+The V2 entry point is `schematic_final.js`; `final_preview.html` displays sample
+V2 results. Open http://127.0.0.1:8080/schematic_v2.html for V2 input and manual SVG editing. The main index remains V1. Superseded intermediate demos are in
+`obsolete/previews/` and are retained for regression tests (`npm run test:v2`).
+
 - Drawing engine: schematic_test.js; editor lifecycle/state/persistence: schematic_editor.js.
-- Host the app as a separate route or iframe initially. No React adapter or postMessage parameter API is implemented yet.
+- Host the current app as a separate route or iframe initially; `schematic_embed.js` provides its parent-window message bridge. V2 uses the same editor and bridge through `schematic_v2.html`; `schematic_v2_app.js` connects the form to the async V2 engine.
 - The report can embed the final SVG on its second A4 page, using editedSvg when present and generatedSvg otherwise.
 - JSON saving is local download, not backend persistence. The team must connect its backend separately.
 - See docs/svg-editor-integration.md for implementation and test details. Its original branch notes describe the integration history; main now contains that work.
@@ -56,3 +61,13 @@ git worktree add ../schematic-stable schematic-before-svg-editor
 
 To disable editor controls temporarily on the current app, open http://127.0.0.1:8080/?editor=off.
 If this repository is private, grant teammates GitHub repository access before they clone it.
+
+## V2 input and manual editor
+
+Open `/schematic_v2.html`, fill parameters, then use **Edit Schematic** ? **Apply to Schematic**.
+**Save Project** saves engineering data, input draft and generated/edited SVG as JSON.
+**Open Project** restores it; open V2 projects on the V2 page and V1 projects on the V1 page.
+**Download SVG** exports the displayed result at A4 size. Changes to inputs preserve manual
+edits until **Generate Ulang** is confirmed. Invalid input retains the previous drawing.
+Run `node tests/v2-editor.cjs` for the real SVG-Edit round-trip test, or `npm run test:v2`
+for the complete V2 suite. Keep the local server running during browser tests.

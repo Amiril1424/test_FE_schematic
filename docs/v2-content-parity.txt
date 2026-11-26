@@ -1,0 +1,49 @@
+Prototype 2 content parity — 2026-11-26
+
+Reference: schematic_test.js drawing inventory. Legacy engine/editor are unchanged.
+
+Geometry preserved:
+- Pole sections, baseplate/ribs, arm/adapter/rib/lighting, OHW band/hook/rotated arc.
+- Opening face, flange and cover: legacy 750 center, 600 cut, 40 end allowances.
+  Local diameter uses the shared pole query rather than duplicating taper arithmetic.
+- Pole, arm and opening centerlines, with paper-mm dash style in exported SVG.
+- Direct Objects: current area-based boxes/Quantity 1–3 remain the default.
+  Legacy top lighting is available explicitly in the data API:
+  directObjects: [{type:'lighting', attachment:'pole-top'}]
+  This creates the 600 x 200 lighting and 120 x diameter 60.5 adapter only when requested.
+  The existing HTML form still describes the newer side-box mode.
+
+Annotations preserved:
+- Pole H, arm L, merged object H; installation-specific origins and depth rules.
+- Taper load centroid: round(L*(Dlower+2*Dupper)/(3*(Dlower+Dupper))).
+  Uses its parent segment H index; does not increment the next object index.
+- Taper endpoint diameters; Under GL has the two equal buried-section diameters.
+- G.L. without arrow, inspection arrow/text 検討部 at the installation cross section.
+- 開口部, pole thickness/material, arm thickness/material, lighting, box and OHW leaders.
+- Exact OHW Japanese rows and span conversion to metres.
+
+Module boundaries:
+- schematic_Lighting_1a.js: project, coordinate queries and component assembly.
+- schematic_reference_geometry.js: opening and centerline engineering details.
+- schematic_dimensions.js: measured values and indices.
+- schematic_dimension_renderer.js: paper primitives.
+- schematic_diameter_layout.js: diameter-callout relocation, preserving anchor points.
+- schematic_dimension_layout.js: text layout and exported bounds.
+- schematic_reference_renderer.js: GL/cross-section paper annotations.
+- schematic_leaders.js: content requests, candidate search and collision checks.
+- schematic_final.js: final A4 fit, serialization and diagnostics.
+
+Validation:
+- Existing engineering tests retained; data imports now resolve real ES modules.
+- 54 dimension combinations, 9 dimension preview fixtures.
+- 3 final-page regression cases now require zero reported issues (previously one failed OHW was accepted).
+- 6 content-parity cases: straight/taper x all installation types, including top lighting.
+- Visual review of short arm and long arm/Under GL exported previews.
+
+Scope and limits:
+- final_preview.html is the V2 result; the original index.html still runs the legacy engine.
+  Switching the production form/editor to V2 is a separate integration step.
+- These tests cover known configurations, not every possible object density/name/font.
+  Bounded searches report unresolved placements; diagnostics must remain visible.
+- Standard opening requires enough pole height for the full cover; short poles report opening-clearance.
+- Stage 4.6 review notes remain applicable to untested dense layouts.

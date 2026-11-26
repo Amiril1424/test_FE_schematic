@@ -35,7 +35,7 @@ const SVG_NS = "http://www.w3.org/2000/svg";
 const INKSCAPE_NS = "http://www.inkscape.org/namespaces/inkscape";
 const presentation = ["fill", "fill-opacity", "stroke", "stroke-width", "stroke-opacity",
   "stroke-dasharray", "stroke-dashoffset", "stroke-linecap", "stroke-linejoin",
-  "opacity", "font-family", "font-size", "font-weight", "font-style", "text-anchor"];
+  "opacity", "font-family", "font-size", "font-weight", "font-style", "text-anchor", "letter-spacing", "word-spacing"];
 
 // Copy resolved CSS into the document: no dependency on the host page's stylesheet.
 export function exportGeneratedSvg(source) {
@@ -117,6 +117,8 @@ function initSchematicEditor() {
   const source = $("drawing"), form = $("parameters"), preview = $("edited-preview");
   if (!source || !form) return;
   const state = createSchematicEditorState();
+  const engine=form.dataset.engine||'v1';
+  let engineeringProject=null;
   let generatedParameters = null, generatedStatus = "", stale = false, bypass = false, applied = false;
   let editorApi = null, readyPromise = null, session = 0, unsavedManual = false;
   const dialog = $("schematic-editor-dialog");
@@ -135,10 +137,11 @@ function initSchematicEditor() {
     preview.replaceChildren(document.importNode(svg, true));
     preview.hidden = false; source.setAttribute("hidden", "");
   };
-  const capture = () => {
+  const capture = event => {
     if (!source.querySelector("#drawing-content > *")) return;
     state.setGeneratedSvg(exportGeneratedSvg(source));
     generatedParameters = readParameters();
+    engineeringProject=event?.detail?.project??null;
     generatedStatus = $("status").textContent;
     applied = false; stale = false; unsavedManual = false;
     preview.hidden = true; source.removeAttribute("hidden");
@@ -182,6 +185,7 @@ function initSchematicEditor() {
   async function openEditor() {
     const token = ++session;
     dialog.showModal(); $("apply-schematic").disabled = true;
+    emit('schematic:editor-opened');
     $("editor-loading").hidden = false; $("editor-loading").textContent = "Memuat editor...";
     try {
       editorApi = await loadEditor();
@@ -205,11 +209,16 @@ function initSchematicEditor() {
       emit("schematic:applied", { svg: state.getDisplaySvg() });
     } catch (error) { $("editor-loading").hidden = false; $("editor-loading").textContent = error.message; }
   });
-  $("regenerate-schematic").addEventListener("click", () => {
+  function requestGeneration(){
+    const detail={};
+    bypass=true;
+    try{window.dispatchEvent(new CustomEvent('schematic:regenerate',{detail}));}
+    finally{bypass=false;}
+    return detail.promise;
+  }
+  $("regenerate-schematic").addEventListener("click", async () => {
     if (applied && !confirm("Generate ulang akan mengganti hasil edit manual. Simpan proyek terlebih dahulu bila diperlukan. Lanjutkan?")) return;
-    bypass = true;
-    try { window.dispatchEvent(new CustomEvent("schematic:regenerate")); }
-    finally { bypass = false; }
+    await requestGeneration();
     // Only capture(), after a successful render, clears the manual revision.
   });
   // Host-driven generate (embed bridge). The host asks its own user before
@@ -221,14 +230,14 @@ function initSchematicEditor() {
       return { generated: false, blocked: true, stale };
     }
     const before = captureCount;
-    bypass = true;
-    try { window.dispatchEvent(new CustomEvent("schematic:regenerate")); }
-    finally { bypass = false; }
+    const pending=requestGeneration();
+    if(pending)return pending.then(result=>({...result,stale,status:$("status").textContent}));
     return { generated: captureCount !== before, blocked: false, stale: false, status: $("status").textContent };
   }
   $("download-svg").addEventListener("click", () => download("schematic.svg", state.getDisplaySvg(), "image/svg+xml"));
   $("save-project").addEventListener("click", () => {
     const project = { format: "pole-schematic", version: 1, savedAt: new Date().toISOString(),
+      engine,engineeringProject,
       parameters: generatedParameters, draftParameters: readParameters(), generatedStatus,
       ...state.getSnapshot() };
     download("schematic-project.json", JSON.stringify(project, null, 2), "application/json");
@@ -238,6 +247,7 @@ function initSchematicEditor() {
   // Shared by Open Project and the embed bridge (OPEN_PROJECT).
   function restoreProject(project, { askConfirm = true, protectSnapshot = true } = {}) {
     if (!project || project.format !== "pole-schematic" || project.version !== 1) throw new Error("Versi/format proyek tidak didukung.");
+    if((project.engine||'v1')!==engine)throw new Error(`Proyek ${project.engine||'v1'} harus dibuka pada halaman engine yang sesuai.`);
     const generated = validateSvg(project.generatedSvg);
     const edited = project.editedSvg === null ? null : validateSvg(project.editedSvg);
     const validParameters = values => {
@@ -252,12 +262,14 @@ function initSchematicEditor() {
     if (askConfirm && state.getDisplaySvg() && !confirm("Buka proyek ini dan ganti schematic saat ini?")) return false;
     state.setGeneratedSvg(generated); if (edited !== null) state.applyEditedSvg(edited);
     generatedParameters = project.parameters; generatedStatus = String(project.generatedStatus ?? "");
+    engineeringProject=project.engineeringProject??null;
     for (const node of inputs()) node.value = (project.draftParameters ?? project.parameters)[node.id];
     applied = protectSnapshot; // Protect an opened snapshot, even if it has no manual edits yet.
     unsavedManual = false;
     stale = JSON.stringify(readParameters()) !== JSON.stringify(generatedParameters);
     showEdited(); enableActions(true); $("status").textContent = generatedStatus;
     message(stale ? "Proyek dibuka. Parameter draft berbeda; generate ulang bila diperlukan." : "Proyek dibuka; hasil tersimpan ditampilkan.");
+    emit('schematic:restored');
     return true;
   }
   $("open-project").addEventListener("click", () => $("project-file").click());
@@ -274,7 +286,7 @@ function initSchematicEditor() {
   window.schematicHost = Object.freeze({
     version: 1,
     readParameters,
-    getSnapshot: () => ({ ...state.getSnapshot(), parameters: generatedParameters, status: generatedStatus, applied, stale }),
+    getSnapshot: () => ({ ...state.getSnapshot(), engine, engineeringProject, parameters: generatedParameters, status: generatedStatus, applied, stale }),
     regenerate: regenerateFromHost,
     restoreProject: (project, options = {}) => restoreProject(project, { ...options, askConfirm: false }),
     openEditor
