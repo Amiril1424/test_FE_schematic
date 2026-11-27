@@ -34,7 +34,9 @@ export function renderDatumReferences(svg, scene, transform, document) {
   if(leftShift)shiftDimensionLanes(svg,leftShift,{side:'left'});
   if(rightShift)shiftDimensionLanes(svg,rightShift,{side:'right'});
   line(ground,{x:gl.x-half,y:gl.y},{x:gl.x+half,y:gl.y});
-  label(ground,gl.x-half+1,gl.y-1,'G.L.');
+  const lowest=scene.pole.segments.filter(s=>s.region==='above-gl').at(-1);
+  const moveGLRight=scene.pole.installation.type==='baseplate-under-gl' && lowest.lowerDiameter===lowest.upperDiameter && transform.lengthToPaper(lowest.topY-lowest.bottomY)<12;
+  label(ground,moveGLRight?gl.x+objectHalf+4:gl.x-half+1,gl.y-1,'G.L.');
   const inspection=el(root,'g',{'data-reference-id':'inspection'});
   line(inspection,target,{x:inspectionEnd,y:target.y});
   for(const sign of [-1,1])line(inspection,target,{x:target.x+2.5,y:target.y+sign*0.75});

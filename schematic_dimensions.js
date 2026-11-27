@@ -4,7 +4,7 @@ export const DIMENSION_STYLE = Object.freeze({
   letterSpacing: 0, lineHeight: 1.2,
   arrowShape: 'open', arrowLength: 2.5, arrowWidth: 1.5,
   textGap: 1, textEndPadding: 1, extensionGap: 1, extensionOverrun: 2,
-  initialOffset: 30, columnSpacing: 8, rowSpacing: 8, strokeWidth: 0.18
+  initialOffset: 30, armOffset: 10, columnSpacing: 8, rowSpacing: 8, strokeWidth: 0.18
 });
 
 export function createDimensionStyle(overrides = {}) {
@@ -130,7 +130,7 @@ export function buildPoleDimensions(pole, { openingHeight = 750, style = {} } = 
     const dim=createDimension({id:`${segment.poleId}/load-center`,sourceIds:[segment.poleId],
       start:{x:0,y:segment.bottomY},end:{x:0,y:segment.bottomY+height},direction:'vertical',side:'left',
       prefix:`H${parent.hIndex}'=`,style:settings});
-    dim.hIndex=parent.hIndex; dim.note='(荷重中心高さ)'; dim.paper.column=1.5;
+    dim.hIndex=parent.hIndex; dim.note='(荷重中心高さ)'; dim.paper.column=segment.bottomY>=openingHeight ? 1 : 1.5; // Share only disjoint elevation spans.
     dimensions.push(dim);
   }
   // Taper end diameters remain explicit, even next to a matching straight segment.
@@ -140,6 +140,16 @@ export function buildPoleDimensions(pole, { openingHeight = 750, style = {} } = 
       const dim=createDimension({id:`${segment.poleId}/diameter-${end}`,sourceIds:[segment.poleId],
         start:{x:-diameter/2,y},end:{x:diameter/2,y},direction:'horizontal',side,prefix:'Ø',precision:3,style:settings});
       diameterReferences.push(dim);
+    }
+  }
+  const diameterOnly=getDiameterOnlyPoleIds(segments);
+  for (const segment of segments.filter(s=>diameterOnly.has(s.poleId))) {
+    for(const [end,y] of [['top',segment.topY],['bottom',under&&segment===lowest?-depth:segment.bottomY]]){
+      const existing=diameterReferences.find(d=>d.engineering.start.y===y&&d.engineering.value===segment.lowerDiameter);
+      if(existing){if(!existing.sourceIds.includes(segment.poleId))existing.sourceIds.push(segment.poleId);continue;}
+      diameterReferences.push(createDimension({id:`${segment.poleId}/diameter-${end}`,sourceIds:[segment.poleId],
+        start:{x:-segment.lowerDiameter/2,y},end:{x:segment.lowerDiameter/2,y},
+        direction:'horizontal',side:'above',prefix:'\u00D8',precision:3,style:settings}));
     }
   }
   if (separateBuried) {
@@ -169,13 +179,13 @@ export function buildArmDimensions(project, scene, style = {}) {
  const elevations=[...new Set(project.arms.map(a=>a.height))].sort((a,b)=>b-a);
  return project.arms.filter(a=>scene.components.some(c=>c.id===`${a.id}/body`)).map(arm=>{
   const tip=scene.components.find(c=>c.id===`${arm.id}/adapter`).primitives[0].points;
-  const end={x:(tip[0].x+tip[1].x)/2,y:arm.height};
-  const dim=createDimension({id:`${arm.id}/length`,sourceIds:[arm.id],start:{x:0,y:arm.height},end,
+  const end={x:(tip[0].x+tip[1].x)/2,y:(tip[0].y+tip[1].y)/2};
+  const dim=createDimension({id:`${arm.id}/length`,sourceIds:[arm.id],start:{x:0,y:end.y},end,
    direction:'horizontal',side:'above',prefix:`L${elevations.indexOf(arm.height)+1}=`,style});
   dim.elevation=arm.height;dim.poleTop=scene.pole.topY;
   // Clear the arm body before applying the 150 engineering-mm top clearance rule.
   const points=scene.components.filter(c=>c.sourceId===arm.id).flatMap(c=>c.primitives.flatMap(p=>p.points??[]));
-  dim.clearanceY=Math.max(arm.height,...points.map(p=>p.y));
+  dim.clearanceY=Math.max(end.y,...points.map(p=>p.y));
   return dim;
  });
 }
@@ -189,7 +199,7 @@ export function buildObjectHeightDimensions(project, scene, poleDimensions, styl
  };
  for(const arm of project.arms){
   const adapter=scene.components.find(c=>c.id===`${arm.id}/adapter`);
-  if(adapter){const [a,b]=adapter.primitives[0].points;add(arm.id,'arm',{x:(a.x+b.x)/2,y:arm.height});}
+  if(adapter){const [a,b]=adapter.primitives[0].points;add(arm.id,'arm',{x:(a.x+b.x)/2,y:(a.y+b.y)/2});}
  }
  for(const component of scene.components.filter(c=>c.type==='direct-object')){
   const ref=component.reference;
@@ -198,7 +208,7 @@ export function buildObjectHeightDimensions(project, scene, poleDimensions, styl
  }
  for(const wire of project.overheadWires){
   const band=scene.components.find(c=>c.id===`${wire.id}/band`);
-  if(band)add(wire.id,'ohw',{x:Math.max(...band.primitives.flatMap(p=>p.points.map(v=>v.x))),y:wire.height});
+  if(band)add(wire.id,'ohw',{x:Math.max(...band.primitives.flatMap(p=>p.points.map(v=>v.x))),y:(band.primitives[0].points[0].y+band.primitives[0].points[2].y)/2});
  }
  let index=poleDimensions.nextHIndex;
  const dimensions=[];
@@ -213,4 +223,17 @@ export function buildObjectHeightDimensions(project, scene, poleDimensions, styl
   dimensions.push(dim);
  }
  return {dimensions,nextHIndex:index};
+}
+
+/** Straight sections connected to a taper through matching diameter/thickness joints. */
+export function getDiameterOnlyPoleIds(segments) {
+ const ordered=[...segments].filter(s=>s.region==='above-gl').sort((a,b)=>b.topY-a.topY);
+ const result=new Set();let chain=[];
+ const flush=()=>{if(chain.some(s=>s.lowerDiameter!==s.upperDiameter))for(const s of chain)if(s.lowerDiameter===s.upperDiameter)result.add(s.poleId);chain=[];};
+ for(const segment of ordered){
+  const upper=chain.at(-1);
+  if(upper && !(upper.bottomY===segment.topY && upper.lowerDiameter===segment.upperDiameter && upper.lowerThickness===segment.upperThickness && upper.material===segment.material))flush();
+  chain.push(segment);
+ }
+ flush();return result;
 }

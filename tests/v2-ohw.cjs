@@ -30,7 +30,7 @@ const assert = require('node:assert/strict');
   }
   assert.equal(api.buildOHWGeometry(make(0, 2000)).attachments[0].diameter, 180);
   const under = make(0); under.installation = { type: 'baseplate-under-gl', depth: 1000 };
-  assert.equal(api.buildOHWGeometry(under).attachments[0].poleCenter.y, 4000);
+  assert.equal(api.buildOHWGeometry(under).attachments[0].poleCenter.y, 3000);
   const multiple = make(0); multiple.overheadWires.push({ ...multiple.overheadWires[0], id: 'wire-2', fixAngle: 180, height: 3000 });
   const scene = api.buildOHWGeometry(multiple);
   assert.equal(scene.components.length, 6);

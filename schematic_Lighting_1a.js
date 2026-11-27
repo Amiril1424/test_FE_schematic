@@ -34,7 +34,7 @@ export function createProject(input = {}) {
       upperThickness: pole.upperThickness ?? pole.thickness
     }));
   const topHeight = poles.reduce((sum, pole) => sum + pole.height, 0)
-    + (input.installation?.type === 'baseplate-under-gl' ? input.installation.depth : 0);
+;
   return {
     schemaVersion: 1,
     // Pole heights describe the above-GL sections; depth adds a portion below GL.
@@ -49,7 +49,7 @@ export function createProject(input = {}) {
       .map(object => Number.isFinite(object.height) && object.height === topHeight
         ? { ...object, type: 'lighting', attachment: 'pole-top' } : object)
       .map(object=>object.attachment==='pole-top' ? {
-        areaFront:0.12,areaSide:0,height:poles.reduce((sum,p)=>sum+p.height,0)+(input.installation?.type==='baseplate-under-gl'?input.installation.depth:0),
+        areaFront:0.12,areaSide:0,height:poles.reduce((sum,p)=>sum+p.height,0),
         ...object
       } : object),
     overheadWires: list('overheadWires', 'wire', { fixAngle: 0 }),
@@ -148,10 +148,10 @@ export function validateProject(project) {
     number(object.areaSide, `${path}.areaSide`, 0, true);
     number(object.height, `${path}.height`, 0, true);
     const datumY = installation.type === 'baseplate-under-gl' ? -installation.depth : 0;
-    if (Number.isFinite(totalHeight) && object.height + datumY > totalHeight) {
+    if (Number.isFinite(totalHeight) && object.height + datumY > totalHeight + datumY) {
       error(`${path}.height`, 'Center object melebihi tinggi total pole.');
     }
-    if(object.attachment==='pole-top' && object.height+datumY!==totalHeight)error(`${path}.height`,'Pole-top lighting must be at the pole top.');
+    if(object.attachment==='pole-top' && object.height!==totalHeight)error(`${path}.height`,'Pole-top lighting must be at the pole top.');
     quantity(object.quantity, `${path}.quantity`);
     if (Number.isFinite(object.height) && Number.isInteger(object.quantity) && object.quantity > 0) {
       const count = (objectCountsAtHeight.get(object.height) ?? 0) + object.quantity;
@@ -233,17 +233,19 @@ export function buildPoleGeometry(project) {
   if (!validation.valid) {
     throw new TypeError(validation.errors.map(e => `${e.path}: ${e.message}`).join('\n'));
   }
-  const topY = project.poles.reduce((sum, pole) => sum + pole.height, 0);
+  const { type, depth } = project.installation;
+  const under = type === 'baseplate-under-gl';
+  if(under && depth >= project.poles.at(-1).height)throw new RangeError('Under GL depth must be smaller than the lowest pole height.');
+  const topY = project.poles.reduce((sum, pole) => sum + pole.height, 0) - (under ? depth : 0);
   if (!Number.isFinite(topY)) throw new RangeError('Total pole height must be finite.');
   let bottomY = 0;
   const segments = project.poles.slice().reverse().map(pole => {
     const segment = makePoleSegment(pole, 'above-gl', bottomY,
-      bottomY + pole.height, pole.lowerDiameter, pole.upperDiameter);
+      bottomY + pole.height - (under && pole.id===project.poles.at(-1).id ? depth : 0), pole.lowerDiameter, pole.upperDiameter);
     bottomY = segment.topY;
     return segment;
   }).reverse();
   const lowest = project.poles.at(-1);
-  const { type, depth } = project.installation;
   if (depth > 0) {
     segments.push(makePoleSegment(lowest, 'below-gl', -depth, 0,
       lowest.lowerDiameter, lowest.lowerDiameter));
@@ -496,7 +498,8 @@ export function buildOHWGeometry(project, poleGeometry = buildPoleGeometry(proje
   if (!validation.valid) throw new TypeError(validation.errors.map(e => `${e.path}: ${e.message}`).join('\n'));
   const result = { units: 'mm', yAxis: 'up', components: [], attachments: [], issues: [], bounds: null };
   const d = OHW_DETAIL;
-  for (const wire of project.overheadWires) {
+  for (const inputWire of project.overheadWires) {
+    const wire={...inputWire,height:inputWire.height-(poleGeometry.installation.type==='baseplate-under-gl'?poleGeometry.installation.depth:0)};
     const diameter = getPoleDiameterAtHeight(poleGeometry, wire.height);
     if (!(diameter > d.centerGap)) {
       result.issues.push({ sourceId: wire.id, code: 'ohw-attachment', message: 'OHW needs a pole diameter greater than the band center gap at its elevation.' });
@@ -627,6 +630,7 @@ export function buildArmObjectGeometry(attachment, specification = ARM_OBJECT_DE
 }
 
 function findArmConnection(geometry, arm) {
+  arm={...arm,height:arm.height-(geometry.installation.type==='baseplate-under-gl'?geometry.installation.depth:0)};
   const radians = arm.verticalAngle * Math.PI / 180;
   const cos = Math.cos(radians), sin = Math.sin(radians);
   const actualLength = arm.length / cos;

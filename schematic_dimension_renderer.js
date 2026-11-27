@@ -38,9 +38,9 @@ export function renderArmDimensions(svg, dimensions, transform, document, cache)
  const occupied=[];
  for(const group of groups.values()) {
   const s=group[0].paper.style;
-  let y=Math.min(...group.map(d=>transform.toPaper({x:0,y:d.clearanceY}).y))-s.initialOffset;
+  let y=Math.min(...group.map(d=>transform.toPaper({x:0,y:d.clearanceY}).y))-s.armOffset;
   const top=transform.toPaper({x:0,y:group[0].poleTop}).y;
-  if(y-top<transform.lengthToPaper(150))y=top-s.initialOffset;
+  if(y-top<transform.lengthToPaper(150))y=top-s.armOffset;
   while(occupied.some(v=>Math.abs(v-y)<s.rowSpacing))y-=s.rowSpacing;
   occupied.push(y);
   const paired=group.some(d=>d.engineering.end.x<0)&&group.some(d=>d.engineering.end.x>0);
@@ -54,9 +54,9 @@ export function renderArmDimensions(svg, dimensions, transform, document, cache)
    line(g,a.x,y,b.x,y);
    let tx=(a.x+b.x)/2;
    if(outside){
-    const end=b.x+sign*(m.width+2*s.textEndPadding+s.arrowLength);
+    const end=b.x+sign*(m.width+2*(s.textEndPadding+5)+s.arrowLength);
     line(g,b.x,y,end,y);arrow(g,b.x,y,sign,s);
-    tx=b.x+sign*(s.arrowLength+s.textEndPadding+m.width/2);
+    tx=b.x+sign*(s.arrowLength+s.textEndPadding+5+m.width/2);
     if(paired){if(!dot){el(root,'circle',{cx:a.x,cy:y,r:0.5,fill:'#444'});dot=true;}}
     else {arrow(g,a.x,y,-sign,s);line(g,a.x,y,a.x-sign*2*s.arrowLength,y);}
    }else {arrow(g,a.x,y,sign,s);arrow(g,b.x,y,-sign,s);}

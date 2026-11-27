@@ -14,6 +14,24 @@ export function finalizeDimensionLayout(svg, document) {
  };
  const overlaps=(a,b,gap=0.5)=>a.minX<b.maxX+gap&&a.maxX>b.minX-gap&&a.minY<b.maxY+gap&&a.maxY>b.minY-gap;
  const labels=[...svg.querySelectorAll('[data-dimension-id] text')];
+ arrangeDiameterCallouts(svg);
+ // Lift the complete arm row, preserving engineering extension origins.
+ const diameterText=[...svg.querySelectorAll('[data-dimension-kind="diameter"] text')].map(box);
+ for(const group of svg.querySelectorAll('[data-layer="arm-dimensions"] [data-dimension-id]')){
+  const conflicts=diameterText.filter(b=>[...group.querySelectorAll('line,text')].some(n=>overlaps(box(n),b,1)));
+  if(!conflicts.length)continue;
+  const rowLines=[...group.querySelectorAll('line')];
+  const horizontal=rowLines.filter(n=>Math.abs(+n.getAttribute('y1')-n.getAttribute('y2'))<1e-8);
+  const rowY=+horizontal[0].getAttribute('y1');
+  const delta=Math.min(...conflicts.map(b=>b.minY))-3-rowY;
+  if(delta>=0)continue;
+  for(const line of rowLines){
+   const vertical=Math.abs(+line.getAttribute('x1')-line.getAttribute('x2'))<1e-8&&Math.abs(+line.getAttribute('y1')-line.getAttribute('y2'))>4;
+   if(!vertical)line.setAttribute('y1',+line.getAttribute('y1')+delta);
+   line.setAttribute('y2',+line.getAttribute('y2')+delta);
+  }
+  for(const n of group.querySelectorAll('text,circle')){const attr=n.tagName==='text'?'y':'cy';n.setAttribute(attr,+n.getAttribute(attr)+delta);}
+ }
  const accepted=[],issues=arrangeDiameterCallouts(svg);
  const lines=[...svg.querySelectorAll('[data-dimension-id] line')].map(node=>({id:node.closest('[data-dimension-id]').dataset.dimensionId,bounds:box(node)}));
  for(const label of labels){

@@ -12,10 +12,10 @@ export function arrangeDiameterCallouts(svg) {
   const issues=[];
   for(const group of svg.querySelectorAll('[data-dimension-kind="diameter"]')) {
     const lines=[...group.querySelectorAll('line')],text=group.querySelector('text');
-    const runs=group.dataset.dimensionId.endsWith('diameter-top')?DIAGONAL_RUNS:LOWER_DIAMETER_RUNS;
+    const runs=group.dataset.dimensionId.endsWith('diameter-top')?[18,16,14,12,10,...DIAGONAL_RUNS]:LOWER_DIAMETER_RUNS;
     const original=lines.map(n=>['x1','y1','x2','y2'].map(k=>+n.getAttribute(k)));
     const tx=+text.getAttribute('x'),ty=+text.getAttribute('y');
-    const obstacles=[...svg.querySelectorAll('[data-dimension-id] line')].filter(n=>!group.contains(n)).flatMap(segments);
+    const obstacles=[...svg.querySelectorAll('[data-dimension-id] line')].filter(n=>!group.contains(n)).flatMap(n=>segments(n).map(part=>({...part,dimensionStroke:true,arrow:Math.hypot(+n.getAttribute('x2')-n.getAttribute('x1'),+n.getAttribute('y2')-n.getAttribute('y1'))<4})));
     const labels=[...svg.querySelectorAll('[data-dimension-id] text')].filter(n=>!group.contains(n)).map(n=>{
       const b=n.getBBox(),m=svg.getCTM().inverse().multiply(n.getCTM());
       const points=[[b.x,b.y],[b.x+b.width,b.y],[b.x,b.y+b.height],[b.x+b.width,b.y+b.height]].map(([x,y])=>({x:m.a*x+m.c*y+m.e,y:m.b*x+m.d*y+m.f}));
@@ -33,8 +33,8 @@ export function arrangeDiameterCallouts(svg) {
     const sourceId=group.dataset.sourceId||group.dataset.dimensionId.split('/')[0];
     // Diameter witness lines originate on the measured pole/plate section itself.
     // Only that measured assembly is exempt; labels still avoid all geometry.
-    const strokeObstacles=occupied.filter(o=>!o.owner?.startsWith(sourceId+'/')&&
-      !(group.dataset.dimensionId.endsWith('diameter-bottom')&&o.owner?.startsWith('installation/'))&&o.owner!=='pole/centerline');
+    const strokeObstacles=occupied.filter(o=>(!o.dimensionStroke||o.arrow)&&!o.owner?.startsWith(sourceId+'/')&&
+      !(group.dataset.dimensionId.endsWith('diameter-bottom')&&o.owner?.startsWith('installation/'))&& !o.owner?.endsWith('/above-gl') && !o.owner?.endsWith('/below-gl') &&o.owner!=='pole/centerline');
     let placed=false;
     const move=(dx,dy)=>{
       lines.forEach((line,i)=>['x1','y1','x2','y2'].forEach((key,k)=>line.setAttribute(key,original[i][k]+(i<2&&k<2?0:k%2?dy:dx))));
@@ -45,7 +45,7 @@ export function arrangeDiameterCallouts(svg) {
         for(let i=0;i<2;i++) {
           const line=lines[i],a=original[i];
           const sx=Math.sign(+line.getAttribute('x2')-a[0]),sy=Math.sign(+line.getAttribute('y2')-a[1]);
-          const distance=sy>0?0.5:(sx>0?high-a[0]:a[0]-low)+0.5;
+          const distance=0.5; // Equal witness gaps; diameter references may cross the measured pole.
           line.dataset.referenceX=a[0];line.dataset.referenceY=a[1];
           line.setAttribute('x1',a[0]+sx*distance);line.setAttribute('y1',a[1]+sy*distance);
         }
@@ -65,7 +65,9 @@ export function arrangeDiameterCallouts(svg) {
         group.dataset.textPosition=right?'outside-right':'outside-left';
       } else group.dataset.textPosition='center';
     };
-    for(const quadrant of ANNOTATION_QUADRANTS) {
+    const baseDiameter=Number(group.dataset.referenceElevation)<0;
+    const quadrants=baseDiameter?[ANNOTATION_QUADRANTS[3],ANNOTATION_QUADRANTS[2]]:ANNOTATION_QUADRANTS;
+    for(const quadrant of quadrants) {
       for(const run of runs) {
         const dx=quadrant.x*run-(original[0][2]-original[0][0]);
         const dy=quadrant.y*run-(original[0][3]-original[0][1]);
@@ -73,7 +75,7 @@ export function arrangeDiameterCallouts(svg) {
         const bounds=text.getBBox();
         const witnesses=lines.slice(0,2).flatMap(line=>segments(line).slice(2));
         const strokes=lines.slice(2).flatMap(segments);
-        if(bounds.x<5||bounds.x+bounds.width>205||bounds.y<5||bounds.y+bounds.height>292)continue;
+        // Final A4 layout centers and fits the complete annotation bounds.
         if(!occupied.some(o=>overlap(bounds,o))&&
           !witnesses.some(s=>strokeObstacles.some(o=>overlap(s,o,0.1)))&&
           !strokes.some(s=>occupied.some(o=>overlap(s,o,0.1)))) {
@@ -84,7 +86,8 @@ export function arrangeDiameterCallouts(svg) {
       if(placed)break;
     }
     if(!placed){
-      move(runs[0]-(original[0][2]-original[0][0]),-runs[0]-(original[0][3]-original[0][1]));
+      const fallback=quadrants[0];
+      move(fallback.x*runs[0]-(original[0][2]-original[0][0]),fallback.y*runs[0]-(original[0][3]-original[0][1]));
       issues.push({dimensionId:group.dataset.dimensionId,code:'diameter-space',message:'Diameter callout requires layout review.'});
     }
   }

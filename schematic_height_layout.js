@@ -6,6 +6,11 @@ import { analyzeDrawingSpace } from './schematic_leaders.js';
 export function compactObjectHeightDimensions(svg,{clearance=5,columnSpacing=8}={}) {
   const {obstacles}=analyzeDrawingSpace(svg,{includeLeaders:true,excludeObjectHeights:true});
   const groups=[...svg.querySelectorAll('[data-layer="object-height-dimensions"] [data-dimension-id]')];
+  // One shared envelope keeps adjacent columns at the same paper spacing.
+  const commonEdge=Math.max(...[...groups].reverse().map((group,index)=>{
+    const main=group.querySelectorAll('line')[2],top=Math.min(+main.getAttribute('y1'),+main.getAttribute('y2')),bottom=Math.max(+main.getAttribute('y1'),+main.getAttribute('y2'));
+    return Math.max(...obstacles.filter(o=>o.bounds.maxY>=top-1&&o.bounds.minY<=bottom+1).map(o=>o.bounds.maxX))-index*columnSpacing;
+  }));
   let previous=-Infinity;
   const moves=[];
   // Shortest/innermost first; the higher columns remain outside the lower ones.
@@ -15,10 +20,10 @@ export function compactObjectHeightDimensions(svg,{clearance=5,columnSpacing=8}=
     const top=Math.min(+main.getAttribute('y1'),+main.getAttribute('y2'));
     const bottom=Math.max(+main.getAttribute('y1'),+main.getAttribute('y2'));
     const edge=Math.max(...obstacles.filter(o=>o.bounds.maxY>=top-1&&o.bounds.minY<=bottom+1).map(o=>o.bounds.maxX));
-    const x=Math.min(original,Math.max(edge+clearance,previous+columnSpacing));
+    const x=Math.max(commonEdge+clearance,previous+columnSpacing);
     previous=x;
     const delta=x-original;
-    if(delta>=-0.01)continue;
+    if(Math.abs(delta)<0.01)continue;
     lines.forEach((line,i)=>{
       if(i>=2)line.setAttribute('x1',+line.getAttribute('x1')+delta);
       line.setAttribute('x2',+line.getAttribute('x2')+delta);

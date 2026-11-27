@@ -36,3 +36,20 @@ maps engineering mm/Y-up to paper mm/Y-down via `toPaper`, with inverse
 `toEngineering`. Length conversion uses `lengthToPaper`/`lengthToEngineering`.
 Paper text/arrow sizes remain paper values. Automatic scale selection, SVG
 rendering, dimensions, and leader placement are deferred to later stages.
+
+Under GL correction (2026-11-27): Arm tip and OHW input heights, like Direct Object,
+are measured from the baseplate underside. Convert to GL engineering Y by subtracting
+depth once; dimension labels retain the input height. On GL/embedment remain GL-based.
+For a short lowest straight Under GL section (less than 12 mm on paper), place G.L.
+text to the right of the pole/baseplate envelope. Object-height columns share the
+8 mm paper spacing and use the closest uniform bundle clearing existing annotations.
+
+LATEST RULE - supersedes earlier additive Under GL examples:
+Baseplate Under GL pole inputs include the buried portion. H1=sum(pole heights),
+not sum+depth. GL remains Y=0; baseplate bottom=-depth; top=sum-depth.
+Depth is taken from the lowest input segment; it must leave positive height above GL.
+Embedment retains its separate added depth rule. Arm/OHW/DO heights remain measured
+from baseplate bottom for Under GL. Example 8000+400, depth300: H1=8400,
+H2=8000,H3=400,topY=8100,baseY=-300.
+Base diameter prefers Q4 below the plate. Arm rows use a separate 10 mm paper offset.
+Diameter witnesses may cross pole outlines, but must avoid annotation text and arrows.

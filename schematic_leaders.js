@@ -1,5 +1,5 @@
 import { ANNOTATION_QUADRANTS, DIAGONAL_RUNS, WIRE_DIAGONAL_RUNS, LEADER_FALLBACK_RUNS, LEADER_TEXT_STYLE } from './schematic_annotation_policy.js';
-import {createDimensionTextCache,createCanvasTextMeasurer} from './schematic_dimensions.js';
+import {getDiameterOnlyPoleIds,createDimensionTextCache,createCanvasTextMeasurer} from './schematic_dimensions.js';
 const overlap=(a,b,p=0.8)=>a.minX<b.maxX+p&&a.maxX>b.minX-p&&a.minY<b.maxY+p&&a.maxY>b.minY-p;
 const box=(a,b)=>({minX:Math.min(a.x,b.x),maxX:Math.max(a.x,b.x),minY:Math.min(a.y,b.y),maxY:Math.max(a.y,b.y)});
 /** Stage 5: SVG coordinates are paper mm. Sample curves once, not per candidate. */
@@ -114,11 +114,14 @@ export function buildLeaderRequests(project,scene,transform){
   const components=scene.components.filter(c=>c.type==='direct-object'&&c.sourceId===object.id);
   if(components.length)add(`${object.id}/leader`,components[0].id,[object.name||(object.type==='lighting'?'灯具':'Direct Object')],components.map(c=>{const p=c.primitives[0].points;return {x:p[1].x,y:(p[1].y+p[2].y)/2};}));
  }
- for(const segment of scene.pole.segments.filter(s=>s.region==='above-gl')){
+ const poleSegments=scene.pole.segments.filter(s=>s.region==='above-gl');
+ const diameterOnly=getDiameterOnlyPoleIds(poleSegments);
+ for(const segment of poleSegments){
   const tapered=segment.lowerDiameter!==segment.upperDiameter;
   const slope=(segment.lowerDiameter-segment.upperDiameter)/(segment.topY-segment.bottomY);
   const taperName=Math.abs(slope-0.01)<0.000005?'1/100テーパー':'温間スピニングテーパー';
   const thickness=segment.lowerThickness.toFixed(1);
+  if(diameterOnly.has(segment.poleId))continue;
   const rows=tapered?[`${taperName}(t${thickness})`,`(JIS G3444 ${segment.material})`]:[`Ø${segment.lowerDiameter} × t${thickness}`,segment.material];
   const points=[];
   for(const fraction of [0.5,0.7,0.3,0.85,0.15])for(const side of [1,-1])points.push({x:side*(segment.lowerDiameter+(segment.upperDiameter-segment.lowerDiameter)*fraction)/2,y:segment.bottomY+(segment.topY-segment.bottomY)*fraction});

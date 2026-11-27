@@ -47,3 +47,25 @@ Scope and limits:
   Bounded searches report unresolved placements; diagnostics must remain visible.
 - Standard opening requires enough pole height for the full cover; short poles report opening-clearance.
 - Stage 4.6 review notes remain applicable to untested dense layouts.
+
+Adjacent pole specification rule:
+For each upper taper / lower straight pair, matching joint diameter, wall thickness
+and material suppress the repeated straight thickness/material rows. Keep its diameter.
+Keep the taper specification on the taper. Different materials retain both specifications.
+Load-center and opening dimensions share one lane where their vertical spans are disjoint,
+so the opening follows the pole segment column at the normal paper spacing.
+
+Diameter correction: matching straight sections must use a true diameter dimension
+(two parallel 45-degree witnesses, opposite arrows, horizontal dimension line),
+never a single-arrow diameter leader. Anchor at both actual pole surfaces at the
+lower section endpoint. Equal witness gaps preserve the measured diameter. Only
+pole diameter witness lines may cross pole object lines; text must remain clear.
+
+LATEST matching-chain rule:
+Evaluate every adjacent joint top to bottom. Matching joint diameters, thicknesses
+and materials connect a chain. If that chain contains a taper, all straight sections
+in it (above or below the taper) omit their specification leaders and retain true
+upper/lower diameter dimensions. Coincident equal joint dimensions are drawn once
+with both source IDs. A mismatch breaks the chain. Keep the taper specification.
+Arm length rows move upward as complete annotations when crossing pole diameter
+text, retaining their engineering extension origins.
