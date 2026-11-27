@@ -53,3 +53,12 @@ from baseplate bottom for Under GL. Example 8000+400, depth300: H1=8400,
 H2=8000,H3=400,topY=8100,baseY=-300.
 Base diameter prefers Q4 below the plate. Arm rows use a separate 10 mm paper offset.
 Diameter witnesses may cross pole outlines, but must avoid annotation text and arrows.
+
+Catalog short straight correction:
+Straight bottom segments of 100/200 mm are supported. Base ribs may cross the joint
+and use the assembled pole surface, instead of requiring 205 mm within the lowest
+segment. For Under GL with a straight bottom, retain every physical input segment
+length and shift the assembly down by depth. GL may cross the next taper segment;
+do not append an artificial straight extension. Depth must be less than total length.
+Example taper8000 + straight100, depth300: total8100, bottom=-300, joint=-200, top7800.
+Verified SVG generation for On GL/Under GL, lowest straight100/200/300.

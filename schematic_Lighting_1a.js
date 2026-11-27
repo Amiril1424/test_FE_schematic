@@ -235,18 +235,21 @@ export function buildPoleGeometry(project) {
   }
   const { type, depth } = project.installation;
   const under = type === 'baseplate-under-gl';
-  if(under && depth >= project.poles.at(-1).height)throw new RangeError('Under GL depth must be smaller than the lowest pole height.');
+  const physicalUnder=under && project.poles.at(-1).type==='straight';
+  const inputLength=project.poles.reduce((sum,p)=>sum+p.height,0);
+  if(under && depth>=inputLength)throw new RangeError('Under GL depth must be smaller than total pole length.');
+  if(under && !physicalUnder && depth>=project.poles.at(-1).height)throw new RangeError('Under GL depth must be smaller than the lowest taper height.');
   const topY = project.poles.reduce((sum, pole) => sum + pole.height, 0) - (under ? depth : 0);
   if (!Number.isFinite(topY)) throw new RangeError('Total pole height must be finite.');
-  let bottomY = 0;
+  let bottomY = physicalUnder ? -depth : 0;
   const segments = project.poles.slice().reverse().map(pole => {
     const segment = makePoleSegment(pole, 'above-gl', bottomY,
-      bottomY + pole.height - (under && pole.id===project.poles.at(-1).id ? depth : 0), pole.lowerDiameter, pole.upperDiameter);
+      bottomY + pole.height - (under && !physicalUnder && pole.id===project.poles.at(-1).id ? depth : 0), pole.lowerDiameter, pole.upperDiameter);
     bottomY = segment.topY;
     return segment;
   }).reverse();
   const lowest = project.poles.at(-1);
-  if (depth > 0) {
+  if (depth > 0 && !physicalUnder) {
     segments.push(makePoleSegment(lowest, 'below-gl', -depth, 0,
       lowest.lowerDiameter, lowest.lowerDiameter));
   }
@@ -314,11 +317,9 @@ export function buildPoleInstallationGeometry(project, detail = BASEPLATE_DETAIL
       if (!Number.isFinite(detail[key]) || detail[key] <= 0) throw new RangeError(`Invalid baseplate detail: ${key}`);
     }
     if (detail.toeHeight >= detail.ribHeight) throw new RangeError('Rib toe must be below its tip.');
-    if (plateY + detail.thickness + detail.ribHeight > pole.segments.at(-1).topY) {
-      // An underground extension may end inside the rib height: the physical lowest
-      // pole continues above GL, so use that pole\'s above-ground section top instead.
-      const lowestTop = pole.segments.find(s => s.poleId === project.poles.at(-1).id).topY;
-      if (plateY + detail.thickness + detail.ribHeight > lowestTop) throw new RangeError('Base rib exceeds lowest pole section.');
+    // Ribs may span a catalog joint; query the assembled pole surface at each height.
+    if (plateY + detail.thickness + detail.ribHeight > pole.topY) {
+      throw new RangeError('Base rib exceeds total pole height.');
     }
   }
   for (const segment of pole.segments) {

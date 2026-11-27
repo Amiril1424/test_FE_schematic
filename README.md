@@ -1,4 +1,4 @@
-﻿# Schematic V2 - Panduan integrasi iframe untuk frontend tim
+# Schematic V2 - Panduan integrasi iframe untuk frontend tim
 
 Frontend React tim menjadi sumber input engineering. Schematic menerima parameter
 melalui postMessage, membuat SVG A4, dan menyediakan editor SVG manual.
@@ -71,7 +71,7 @@ alias diameter lama.
 - Pole diurutkan **paling atas ke bawah**. Height pole adalah panjang segmen.
 - Under GL: total pole = jumlah height segmen; depth **tidak ditambahkan**.
   Contoh 8000 + 400, depth 300: H1=8400, top Y=8100, bawah baseplate Y=-300.
-  Implementasi sekarang mensyaratkan depth lebih kecil dari height segmen terbawah.
+  Untuk straight terbawah, depth boleh melewati sambungan ke taper; harus lebih kecil dari total panjang pole. Kasus taper paling bawah masih mensyaratkan depth lebih kecil dari segmen taper tersebut.
 - On GL: depth efektif 0. Embedment: height segmen adalah bagian di atas GL,
   sedangkan depth menjadi tambahan bagian tertanam.
 - Height arm adalah center ujung arm; length adalah proyeksi horizontal dari
