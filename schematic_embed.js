@@ -65,6 +65,19 @@
   function setField(id, val) {
     const el = document.getElementById(id);
     if (!el || val === undefined || val === null) return;
+    // Dynamically append option if select element doesn't contain the incoming value (e.g. custom materials)
+    if (el.tagName === "SELECT") {
+      const stringVal = String(val);
+      const existingOption = Array.from(el.options).find(
+        (opt) => opt.value === stringVal || opt.text === stringVal
+      );
+      if (!existingOption) {
+        const newOpt = document.createElement("option");
+        newOpt.value = stringVal;
+        newOpt.textContent = stringVal;
+        el.appendChild(newOpt);
+      }
+    }
     el.value = val;
     el.dispatchEvent(new Event("change", { bubbles: true }));
   }
